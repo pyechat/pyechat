@@ -4,7 +4,7 @@ from logger import Logger
 from PyQt5.QtCore import QThread, pyqtSignal
 
 class IRCClient(QThread):
-    new_message = pyqtSignal(str)
+    new_message = pyqtSignal(str, str, list)  # Updated to include args
     joined_channel = pyqtSignal(str)
     sent_command = pyqtSignal(str)
 
@@ -31,7 +31,7 @@ class IRCClient(QThread):
 
     def parse_message(self, message):
         parts = message.split()
-        if not parts:
+        if len(parts) < 2:
             return None, None, []
         source = parts[0][1:] if parts[0].startswith(':') else None
         command = parts[1] if source else parts[0]
@@ -53,6 +53,7 @@ class IRCClient(QThread):
             if msg != '':
                 self.logger.info(f'Sending command: {msg}')
                 self.ircsock.send(bytes(f'{msg}\r\n','UTF-8'))
+                self.sent_command.emit(msg)  # Emit the sent command
         except Exception as e:
             self.logger.error(f'Error sending IRC message: {e}')
             raise
@@ -80,16 +81,9 @@ class IRCClient(QThread):
                     message = message.strip()
                     source, command, args = self.parse_message(message)
                     self.logger.debug(f'Received: source: {source} | command: {command} | args: {args}')
-                    self.new_message.emit(message)
 
                     if command == 'PRIVMSG':
-                        channel, message = args[0], args[1]
-                        source_nick = source.split('!')[0]
-                        if message.startswith('&'):
-                            cmd, *cmd_args = message[1:].split()
-                            self.handle_command(source_nick, channel, cmd, cmd_args)
-                        for plugin in self.plugins:
-                            plugin.handle_message(source_nick, channel, message)
+                        self.new_message.emit(source, command, args)  # Emit source, command, and args
 
                     elif command == 'PING':
                         nospoof = args[0][1:] if args[0].startswith(':') else args[0]
