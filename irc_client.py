@@ -65,26 +65,38 @@ class IRCClient(QThread):
 
         while True:
             ircmsg = self.ircsock.recv(2048)
-            ircmsg = self.decode(ircmsg).strip('\n\r')
-            source, command, args = self.parse_message(ircmsg)
-            self.logger.debug(f'Received: source: {source} | command: {command} | args: {args}')
-            self.new_message.emit(ircmsg)
+            ircmsg = self.decode(ircmsg)
+            
+            # Check for different line endings and split accordingly
+            if '\r\n' in ircmsg:
+                messages = ircmsg.split('\r\n')
+            elif '\n' in ircmsg:
+                messages = ircmsg.split('\n')
+            else:
+                messages = [ircmsg]
 
-            if command == 'PRIVMSG':
-                    channel, message = args[0], args[1]
-                    source_nick = source.split('!')[0]
-                    if message.startswith('&'):
-                        cmd, *cmd_args = message[1:].split()
-                        self.handle_command(source_nick, channel, cmd, cmd_args)
-                    for plugin in self.plugins:
-                        plugin.handle_message(source_nick, channel, message)
+            for message in messages:
+                if message:  # Ignore empty lines
+                    message = message.strip()
+                    source, command, args = self.parse_message(message)
+                    self.logger.debug(f'Received: source: {source} | command: {command} | args: {args}')
+                    self.new_message.emit(message)
 
-            elif command == 'PING':
-                nospoof = args[0][1:] if args[0].startswith(':') else args[0]
-                self.ircsend(f'PONG :{nospoof}')
+                    if command == 'PRIVMSG':
+                        channel, message = args[0], args[1]
+                        source_nick = source.split('!')[0]
+                        if message.startswith('&'):
+                            cmd, *cmd_args = message[1:].split()
+                            self.handle_command(source_nick, channel, cmd, cmd_args)
+                        for plugin in self.plugins:
+                            plugin.handle_message(source_nick, channel, message)
 
-            if ircmsg.endswith("End of /MOTD command."):
-                self.ircsend(f'JOIN {self.channel}')
-                self.joined_channel.emit(self.channel)
+                    elif command == 'PING':
+                        nospoof = args[0][1:] if args[0].startswith(':') else args[0]
+                        self.ircsend(f'PONG :{nospoof}')
+
+                    if message.endswith("End of /MOTD command."):
+                        self.ircsend(f'JOIN {self.channel}')
+                        self.joined_channel.emit(self.channel)
 
             time.sleep(0.1)
