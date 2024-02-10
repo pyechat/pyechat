@@ -1,0 +1,2 @@
+# elitechat
+PyQt+ IRC Client.
