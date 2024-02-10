@@ -92,6 +92,13 @@ class App(QWidget):
 def main():
     app = QApplication(sys.argv)
 
+    # Read the stylesheet
+    with open('style.qss', 'r') as f:
+        stylesheet = f.read()
+
+    # Apply the stylesheet
+    app.setStyleSheet(stylesheet)
+
     ex = App()
     ex.show()
 
