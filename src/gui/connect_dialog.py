@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QDialogButtonBox, QLabel
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QDialogButtonBox, QLabel, QApplication
 
 class ConnectDialog(QDialog):
     def __init__(self, parent=None):
@@ -35,10 +35,10 @@ class ConnectDialog(QDialog):
         self.channel_label = QLabel("Channel:", self)
         self.layout.addWidget(self.channel_label)
         self.channel_input = QLineEdit(self)
-        self.channel_input.setText("#elitechat")
+        self.channel_input.setText("#pyechat")
         self.layout.addWidget(self.channel_input)
 
-        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
         self.layout.addWidget(self.buttons)

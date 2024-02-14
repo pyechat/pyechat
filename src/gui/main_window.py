@@ -1,5 +1,5 @@
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QTabWidget
+from PyQt6.QtCore import pyqtSlot
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QTabWidget
 
 class MainWindow(QWidget):
     def __init__(self, client):
