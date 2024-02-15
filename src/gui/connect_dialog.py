@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QDialogButtonBox, QLabel, QApplication
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QDialogButtonBox, QLabel, QApplication, QCheckBox
 
 class ConnectDialog(QDialog):
     def __init__(self, parent=None):
@@ -38,13 +38,18 @@ class ConnectDialog(QDialog):
         self.channel_input.setText("#pyechat")
         self.layout.addWidget(self.channel_input)
 
+        self.ssl_label = QLabel("Use SSL:", self)
+        self.layout.addWidget(self.ssl_label)
+        self.ssl_checkbox = QCheckBox(self)
+        self.layout.addWidget(self.ssl_checkbox)
+
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
         self.layout.addWidget(self.buttons)
 
     def get_values(self):
-        return self.host_input.text(), int(self.port_input.text()), self.nick_input.text(), self.realname_input.text(), self.channel_input.text()
-    
+        return self.host_input.text(), int(self.port_input.text()), self.nick_input.text(), self.realname_input.text(), self.channel_input.text(), self.ssl_checkbox.isChecked()
+
     def closeEvent(self, event):
         QApplication.quit()
