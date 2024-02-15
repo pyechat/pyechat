@@ -9,8 +9,8 @@ if __name__ == '__main__':
 
     dialog = ConnectDialog()
     if dialog.exec() == QDialog.DialogCode.Accepted:
-        host, port, nick, realname, channel = dialog.get_values()
-        client = IRCClient(host, port, nick, realname, channel)
+        host, port, nick, realname, channel, use_ssl = dialog.get_values()
+        client = IRCClient(host, port, nick, realname, channel, use_ssl)
         client.connect_to_host()
 
         window = MainWindow(client)

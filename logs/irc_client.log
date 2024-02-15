@@ -1,0 +1,375 @@
+2024-02-15 08:57:08,472 [INFO] Initialized IRCClient with server=irc.rizon.net, port=6667, nickname=pyechat, realname=Pyechat: https://pyechat.github.io, channel=#pyechat, use_ssl=False
+2024-02-15 08:57:08,472 [INFO] Connecting to host irc.rizon.net:6667
+2024-02-15 08:57:08,510 [INFO] Sending command: NICK pyechat
+2024-02-15 08:57:08,510 [INFO] Sent command: NICK pyechat
+2024-02-15 08:57:08,510 [INFO] Sending command: USER pyechat 0 * :Pyechat: https://pyechat.github.io
+2024-02-15 08:57:08,511 [INFO] Sent command: USER pyechat 0 * :Pyechat: https://pyechat.github.io
+2024-02-15 08:57:08,511 [INFO] Connected to host irc.rizon.net:6667 with SSL=False
+2024-02-15 08:57:09,132 [DEBUG] Received line: :irc.uworld.se NOTICE * :*** Looking up your hostname...
+2024-02-15 08:57:09,133 [INFO] Parsing message: :irc.uworld.se NOTICE * :*** Looking up your hostname...
+2024-02-15 08:57:09,297 [DEBUG] Received line: :irc.uworld.se NOTICE * :*** Checking Ident
+2024-02-15 08:57:09,297 [INFO] Parsing message: :irc.uworld.se NOTICE * :*** Checking Ident
+2024-02-15 08:57:11,102 [DEBUG] Received line: :irc.uworld.se NOTICE * :*** Found your hostname
+2024-02-15 08:57:11,102 [INFO] Parsing message: :irc.uworld.se NOTICE * :*** Found your hostname
+2024-02-15 08:57:11,104 [DEBUG] Received line: :irc.uworld.se NOTICE * :*** No Ident response
+2024-02-15 08:57:11,104 [INFO] Parsing message: :irc.uworld.se NOTICE * :*** No Ident response
+2024-02-15 08:57:45,962 [DEBUG] Received line: PING :3039131823
+2024-02-15 08:57:45,962 [INFO] Parsing message: PING :3039131823
+2024-02-15 08:57:45,964 [ERROR] Error occurred on the socket: The remote host closed the connection
+2024-02-15 08:58:06,656 [INFO] Initialized IRCClient with server=irc.rizon.net, port=6667, nickname=pyechat, realname=Pyechat: https://pyechat.github.io, channel=#pyechat, use_ssl=False
+2024-02-15 08:58:06,657 [INFO] Connecting to host irc.rizon.net:6667
+2024-02-15 08:58:06,678 [INFO] Sending command: NICK pyechat
+2024-02-15 08:58:06,679 [INFO] Sent command: NICK pyechat
+2024-02-15 08:58:06,679 [INFO] Sending command: USER pyechat 0 * :Pyechat: https://pyechat.github.io
+2024-02-15 08:58:06,680 [INFO] Sent command: USER pyechat 0 * :Pyechat: https://pyechat.github.io
+2024-02-15 08:58:06,680 [INFO] Connected to host irc.rizon.net:6667 with SSL=False
+2024-02-15 08:58:07,219 [DEBUG] Received line: :irc.uworld.se NOTICE * :*** Found your hostname (cached)
+2024-02-15 08:58:07,219 [INFO] Parsing message: :irc.uworld.se NOTICE * :*** Found your hostname (cached)
+2024-02-15 08:58:07,220 [DEBUG] Received line: :irc.uworld.se NOTICE * :*** Checking Ident
+2024-02-15 08:58:07,220 [INFO] Parsing message: :irc.uworld.se NOTICE * :*** Checking Ident
+2024-02-15 08:58:09,118 [DEBUG] Received line: :irc.uworld.se NOTICE * :*** No Ident response
+2024-02-15 08:58:09,118 [INFO] Parsing message: :irc.uworld.se NOTICE * :*** No Ident response
+2024-02-15 08:58:09,118 [DEBUG] Received line: PING :4007944705
+2024-02-15 08:58:09,118 [INFO] Parsing message: PING :4007944705
+2024-02-15 08:58:09,118 [INFO] Sending command: PONG :4007944705
+2024-02-15 08:58:09,118 [INFO] Sent command: PONG :4007944705
+2024-02-15 08:58:09,177 [DEBUG] Received line: :irc.uworld.se NOTICE pyechat :*** Your host is masked (Rizon-274AD7EE.dynamic.chello.pl)
+2024-02-15 08:58:09,177 [INFO] Parsing message: :irc.uworld.se NOTICE pyechat :*** Your host is masked (Rizon-274AD7EE.dynamic.chello.pl)
+2024-02-15 08:58:09,178 [DEBUG] Received line: :irc.uworld.se 001 pyechat :Welcome to the Rizon Internet Relay Chat Network pyechat
+2024-02-15 08:58:09,178 [INFO] Parsing message: :irc.uworld.se 001 pyechat :Welcome to the Rizon Internet Relay Chat Network pyechat
+2024-02-15 08:58:09,180 [DEBUG] Received line: :irc.uworld.se 002 pyechat :Your host is irc.uworld.se, running version plexus-4(hybrid-8.1.20)
+2024-02-15 08:58:09,180 [INFO] Parsing message: :irc.uworld.se 002 pyechat :Your host is irc.uworld.se, running version plexus-4(hybrid-8.1.20)
+2024-02-15 08:58:09,181 [DEBUG] Received line: :irc.uworld.se 003 pyechat :This server was created Jun 27 2022 at 15:27:35
+2024-02-15 08:58:09,181 [INFO] Parsing message: :irc.uworld.se 003 pyechat :This server was created Jun 27 2022 at 15:27:35
+2024-02-15 08:58:09,182 [DEBUG] Received line: :irc.uworld.se 004 pyechat irc.uworld.se plexus-4(hybrid-8.1.20) CDGNRSUWagilopqrswxyz BCIMNORSabcehiklmnopqstvz Iabehkloqv
+2024-02-15 08:58:09,182 [INFO] Parsing message: :irc.uworld.se 004 pyechat irc.uworld.se plexus-4(hybrid-8.1.20) CDGNRSUWagilopqrswxyz BCIMNORSabcehiklmnopqstvz Iabehkloqv
+2024-02-15 08:58:09,183 [DEBUG] Received line: :irc.uworld.se 005 pyechat CALLERID CASEMAPPING=rfc1459 DEAF=D KICKLEN=180 MODES=4 PREFIX=(qaohv)~&@%+ STATUSMSG=~&@%+ EXCEPTS=e INVEX=I NICKLEN=30 NETWORK=Rizon MAXLIST=beI:250 MAXTARGETS=4 :are supported by this server
+2024-02-15 08:58:09,184 [INFO] Parsing message: :irc.uworld.se 005 pyechat CALLERID CASEMAPPING=rfc1459 DEAF=D KICKLEN=180 MODES=4 PREFIX=(qaohv)~&@%+ STATUSMSG=~&@%+ EXCEPTS=e INVEX=I NICKLEN=30 NETWORK=Rizon MAXLIST=beI:250 MAXTARGETS=4 :are supported by this server
+2024-02-15 08:58:09,184 [DEBUG] Received line: :irc.uworld.se 005 pyechat CHANTYPES=# CHANLIMIT=#:250 CHANNELLEN=50 TOPICLEN=390 CHANMODES=beI,k,l,BCMNORScimnpstz AWAYLEN=180 KNOCK ELIST=CMNTU SAFELIST NAMESX UHNAMES WATCH=60 :are supported by this server
+2024-02-15 08:58:09,184 [INFO] Parsing message: :irc.uworld.se 005 pyechat CHANTYPES=# CHANLIMIT=#:250 CHANNELLEN=50 TOPICLEN=390 CHANMODES=beI,k,l,BCMNORScimnpstz AWAYLEN=180 KNOCK ELIST=CMNTU SAFELIST NAMESX UHNAMES WATCH=60 :are supported by this server
+2024-02-15 08:58:09,185 [DEBUG] Received line: :irc.uworld.se 251 pyechat :There are 22 users and 8493 invisible on 17 servers
+2024-02-15 08:58:09,185 [INFO] Parsing message: :irc.uworld.se 251 pyechat :There are 22 users and 8493 invisible on 17 servers
+2024-02-15 08:58:09,185 [DEBUG] Received line: :irc.uworld.se 252 pyechat 46 :IRC Operators online
+2024-02-15 08:58:09,185 [INFO] Parsing message: :irc.uworld.se 252 pyechat 46 :IRC Operators online
+2024-02-15 08:58:09,186 [DEBUG] Received line: :irc.uworld.se 253 pyechat 3 :unknown connection(s)
+2024-02-15 08:58:09,186 [INFO] Parsing message: :irc.uworld.se 253 pyechat 3 :unknown connection(s)
+2024-02-15 08:58:09,186 [DEBUG] Received line: :irc.uworld.se 254 pyechat 7907 :channels formed
+2024-02-15 08:58:09,186 [INFO] Parsing message: :irc.uworld.se 254 pyechat 7907 :channels formed
+2024-02-15 08:58:09,186 [DEBUG] Received line: :irc.uworld.se 255 pyechat :I have 8515 clients and 17 servers
+2024-02-15 08:58:09,187 [INFO] Parsing message: :irc.uworld.se 255 pyechat :I have 8515 clients and 17 servers
+2024-02-15 08:58:09,368 [DEBUG] Received line: :irc.uworld.se 265 pyechat :Current local users: 8515  Max: 10409
+2024-02-15 08:58:09,368 [INFO] Parsing message: :irc.uworld.se 265 pyechat :Current local users: 8515  Max: 10409
+2024-02-15 08:58:09,369 [DEBUG] Received line: :irc.uworld.se 266 pyechat :Current global users: 8515  Max: 10409
+2024-02-15 08:58:09,369 [INFO] Parsing message: :irc.uworld.se 266 pyechat :Current global users: 8515  Max: 10409
+2024-02-15 08:58:09,369 [DEBUG] Received line: :irc.uworld.se 375 pyechat :- irc.uworld.se Message of the Day -
+2024-02-15 08:58:09,370 [INFO] Parsing message: :irc.uworld.se 375 pyechat :- irc.uworld.se Message of the Day -
+2024-02-15 08:58:09,422 [DEBUG] Received line: :irc.uworld.se 372 pyechat :-          11oo                            
+2024-02-15 08:58:09,423 [INFO] Parsing message: :irc.uworld.se 372 pyechat :-          11oo                            
+2024-02-15 08:58:09,423 [DEBUG] Received line: :irc.uworld.se 372 pyechat :-
+2024-02-15 08:58:09,423 [INFO] Parsing message: :irc.uworld.se 372 pyechat :-
+2024-02-15 08:58:09,424 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- 88d888b. dP d888888b .d8888b. 88d888b. 
+2024-02-15 08:58:09,424 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- 88d888b. dP d888888b .d8888b. 88d888b. 
+2024-02-15 08:58:09,425 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- 88'  `88 88    .d8P' 88'  `88 88'  `88 
+2024-02-15 08:58:09,425 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- 88'  `88 88    .d8P' 88'  `88 88'  `88 
+2024-02-15 08:58:09,425 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- 1188       88  .Y8P    88.  .88 88    88 
+2024-02-15 08:58:09,426 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- 1188       88  .Y8P    88.  .88 88    88 
+2024-02-15 08:58:09,426 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- 11dP       dP d888888P `88888P' dP    dP
+2024-02-15 08:58:09,426 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- 11dP       dP d888888P `88888P' dP    dP
+2024-02-15 08:58:09,427 [DEBUG] Received line: :irc.uworld.se 372 pyechat :-
+2024-02-15 08:58:09,427 [INFO] Parsing message: :irc.uworld.se 372 pyechat :-
+2024-02-15 08:58:09,428 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- Rizon Chat Network -- http://rizon.net
+2024-02-15 08:58:09,428 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- Rizon Chat Network -- http://rizon.net
+2024-02-15 08:58:09,429 [DEBUG] Received line: :irc.uworld.se 372 pyechat :-
+2024-02-15 08:58:09,429 [INFO] Parsing message: :irc.uworld.se 372 pyechat :-
+2024-02-15 08:58:09,430 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- Listening on ports: 6660 - 6669, 7000. SSL: 6697, 9999
+2024-02-15 08:58:09,430 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- Listening on ports: 6660 - 6669, 7000. SSL: 6697, 9999
+2024-02-15 08:58:09,431 [DEBUG] Received line: :irc.uworld.se 372 pyechat :-
+2024-02-15 08:58:09,431 [INFO] Parsing message: :irc.uworld.se 372 pyechat :-
+2024-02-15 08:58:09,432 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- Rules:
+2024-02-15 08:58:09,433 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- Rules:
+2024-02-15 08:58:09,434 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o No spamming or flooding
+2024-02-15 08:58:09,434 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- o No spamming or flooding
+2024-02-15 08:58:09,434 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o No clones or malicious bots
+2024-02-15 08:58:09,435 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- o No clones or malicious bots
+2024-02-15 08:58:09,435 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o No takeovers
+2024-02-15 08:58:09,435 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- o No takeovers
+2024-02-15 08:58:09,435 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o No distribution of child pornography
+2024-02-15 08:58:09,436 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- o No distribution of child pornography
+2024-02-15 08:58:09,436 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o Clients must respond to VERSION requests
+2024-02-15 08:58:09,436 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- o Clients must respond to VERSION requests
+2024-02-15 08:58:09,436 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o Rizon staff may disconnect clients for any or no reason
+2024-02-15 08:58:09,436 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- o Rizon staff may disconnect clients for any or no reason
+2024-02-15 08:58:09,437 [DEBUG] Received line: :irc.uworld.se 372 pyechat :-
+2024-02-15 08:58:09,437 [INFO] Parsing message: :irc.uworld.se 372 pyechat :-
+2024-02-15 08:58:09,438 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- First steps:
+2024-02-15 08:58:09,438 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- First steps:
+2024-02-15 08:58:09,439 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o To register your nick: /msg NickServ HELP
+2024-02-15 08:58:09,439 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- o To register your nick: /msg NickServ HELP
+2024-02-15 08:58:09,442 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o To register your channel: /msg ChanServ HELP
+2024-02-15 08:58:09,442 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- o To register your channel: /msg ChanServ HELP
+2024-02-15 08:58:09,442 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o To get a vHost: /msg HostServ HELP REQUEST
+2024-02-15 08:58:09,442 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- o To get a vHost: /msg HostServ HELP REQUEST
+2024-02-15 08:58:09,443 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o For other help with Rizon: /join #help
+2024-02-15 08:58:09,443 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- o For other help with Rizon: /join #help
+2024-02-15 08:58:09,444 [DEBUG] Received line: :irc.uworld.se 372 pyechat :-
+2024-02-15 08:58:09,444 [INFO] Parsing message: :irc.uworld.se 372 pyechat :-
+2024-02-15 08:58:09,444 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- Usage of this network is a privilege, not a right. Rizon is a
+2024-02-15 08:58:09,444 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- Usage of this network is a privilege, not a right. Rizon is a
+2024-02-15 08:58:09,445 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- transit provider, therefore no person or entity involved with
+2024-02-15 08:58:09,445 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- transit provider, therefore no person or entity involved with
+2024-02-15 08:58:09,445 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- *.rizon.net or irc.uworld.se takes any responsibility for
+2024-02-15 08:58:09,445 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- *.rizon.net or irc.uworld.se takes any responsibility for
+2024-02-15 08:58:09,446 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- users' actions. Absolutely no warranty is expressed or implied.
+2024-02-15 08:58:09,446 [INFO] Parsing message: :irc.uworld.se 372 pyechat :- users' actions. Absolutely no warranty is expressed or implied.
+2024-02-15 08:58:09,447 [DEBUG] Received line: :irc.uworld.se 376 pyechat :End of /MOTD command.
+2024-02-15 08:58:09,447 [INFO] Parsing message: :irc.uworld.se 376 pyechat :End of /MOTD command.
+2024-02-15 08:58:09,447 [INFO] Sending command: JOIN #pyechat
+2024-02-15 08:58:09,448 [INFO] Sent command: JOIN #pyechat
+2024-02-15 08:58:09,449 [DEBUG] Received line: :pyechat!~pyechat@Rizon-274AD7EE.dynamic.chello.pl MODE pyechat :+ix
+2024-02-15 08:58:09,449 [INFO] Parsing message: :pyechat!~pyechat@Rizon-274AD7EE.dynamic.chello.pl MODE pyechat :+ix
+2024-02-15 08:58:09,452 [DEBUG] Received line: :Global!service@rizon.net NOTICE pyechat :[Logon News - Dec 16 2013] Own a large/active channel or plan to get one going? Please read http://s.rizon.net/authline
+2024-02-15 08:58:09,452 [INFO] Parsing message: :Global!service@rizon.net NOTICE pyechat :[Logon News - Dec 16 2013] Own a large/active channel or plan to get one going? Please read http://s.rizon.net/authline
+2024-02-15 08:58:09,452 [DEBUG] Received line: :Global!service@rizon.net NOTICE pyechat :[Logon News - Feb 16 2022] First time on Rizon? Be sure to check out our wiki! https://wiki.rizon.net
+2024-02-15 08:58:09,452 [INFO] Parsing message: :Global!service@rizon.net NOTICE pyechat :[Logon News - Feb 16 2022] First time on Rizon? Be sure to check out our wiki! https://wiki.rizon.net
+2024-02-15 08:58:09,452 [DEBUG] Received line: :Global!service@rizon.net NOTICE pyechat :[Random News - May 07 2013] Looking for a quotes, trivia, or other extra bots? /msg funserv help
+2024-02-15 08:58:09,453 [INFO] Parsing message: :Global!service@rizon.net NOTICE pyechat :[Random News - May 07 2013] Looking for a quotes, trivia, or other extra bots? /msg funserv help
+2024-02-15 08:58:09,756 [DEBUG] Received line: :py-ctcp!ctcp@ctcp-scanner.rizon.net PRIVMSG pyechat :VERSION
+2024-02-15 08:58:09,757 [INFO] Parsing message: :py-ctcp!ctcp@ctcp-scanner.rizon.net PRIVMSG pyechat :VERSION
+2024-02-15 08:58:09,758 [DEBUG] Received line: :pyechat!~pyechat@Rizon-274AD7EE.dynamic.chello.pl JOIN :#pyechat
+2024-02-15 08:58:09,758 [INFO] Parsing message: :pyechat!~pyechat@Rizon-274AD7EE.dynamic.chello.pl JOIN :#pyechat
+2024-02-15 08:58:09,758 [DEBUG] Received line: :irc.uworld.se 332 pyechat #pyechat :Welcome to #pyechat | https://pyechat.github.io | https://github.com/pyechat
+2024-02-15 08:58:09,758 [INFO] Parsing message: :irc.uworld.se 332 pyechat #pyechat :Welcome to #pyechat | https://pyechat.github.io | https://github.com/pyechat
+2024-02-15 08:58:09,759 [DEBUG] Received line: :irc.uworld.se 333 pyechat #pyechat ComputerTech!computerte@ComputerTech.Network 1707880655
+2024-02-15 08:58:09,759 [INFO] Parsing message: :irc.uworld.se 333 pyechat #pyechat ComputerTech!computerte@ComputerTech.Network 1707880655
+2024-02-15 08:58:09,759 [DEBUG] Received line: :irc.uworld.se 353 pyechat = #pyechat :pyechat @Rizon @ComputerTech
+2024-02-15 08:58:09,759 [INFO] Parsing message: :irc.uworld.se 353 pyechat = #pyechat :pyechat @Rizon @ComputerTech
+2024-02-15 08:58:09,760 [DEBUG] Received line: :irc.uworld.se 366 pyechat #pyechat :End of /NAMES list.
+2024-02-15 08:58:09,760 [INFO] Parsing message: :irc.uworld.se 366 pyechat #pyechat :End of /NAMES list.
+2024-02-15 08:58:24,598 [INFO] Initialized IRCClient with server=irc.rizon.net, port=6697, nickname=pyechat, realname=Pyechat: https://pyechat.github.io, channel=#pyechat, use_ssl=True
+2024-02-15 08:58:24,598 [INFO] Connecting to host irc.rizon.net:6697
+2024-02-15 08:58:24,609 [INFO] Sending command: NICK pyechat
+2024-02-15 08:58:24,610 [INFO] Sent command: NICK pyechat
+2024-02-15 08:58:24,610 [INFO] Sending command: USER pyechat 0 * :Pyechat: https://pyechat.github.io
+2024-02-15 08:58:24,611 [INFO] Sent command: USER pyechat 0 * :Pyechat: https://pyechat.github.io
+2024-02-15 08:58:24,611 [INFO] Connected to host irc.rizon.net:6697 with SSL=True
+2024-02-15 08:58:25,035 [ERROR] Error occurred on the socket: The remote host closed the connection
+2024-02-15 08:59:36,528 [INFO] Initialized IRCClient with server=irc.rizon.net, port=6697, nickname=pyechat, realname=Pyechat: https://pyechat.github.io, channel=#pyechat, use_ssl=True
+2024-02-15 08:59:36,529 [INFO] Connecting to host irc.rizon.net:6697
+2024-02-15 08:59:36,548 [INFO] Sending command: NICK pyechat
+2024-02-15 08:59:36,549 [INFO] Sent command: NICK pyechat
+2024-02-15 08:59:36,549 [INFO] Sending command: USER pyechat 0 * :Pyechat: https://pyechat.github.io
+2024-02-15 08:59:36,549 [INFO] Sent command: USER pyechat 0 * :Pyechat: https://pyechat.github.io
+2024-02-15 08:59:36,549 [INFO] Connected to host irc.rizon.net:6697 with SSL=True
+2024-02-15 08:59:36,921 [ERROR] Error occurred on the socket: The remote host closed the connection
+2024-02-15 09:03:04,241 [INFO] Initialized IRCClient with server=irc.rizon.net, port=6697, nickname=pyechat, realname=Pyechat: https://pyechat.github.io, channel=#pyechat, use_ssl=True
+2024-02-15 09:03:04,242 [INFO] Connecting to host irc.rizon.net:6697
+2024-02-15 09:03:04,255 [INFO] Sending command: NICK pyechat
+2024-02-15 09:03:04,255 [INFO] Sent command: NICK pyechat
+2024-02-15 09:03:04,256 [INFO] Sending command: USER pyechat 0 * :Pyechat: https://pyechat.github.io
+2024-02-15 09:03:04,256 [INFO] Sent command: USER pyechat 0 * :Pyechat: https://pyechat.github.io
+2024-02-15 09:03:04,256 [INFO] Connected to host irc.rizon.net:6697 with SSL=True
+2024-02-15 09:03:04,659 [ERROR] Error occurred on the socket: The remote host closed the connection
+2024-02-15 09:05:57,177 [INFO] Initialized IRCClient with server=irc.rizon.net, port=6697, nickname=pyechat, realname=Pyechat: https://pyechat.github.io, channel=#pyechat, use_ssl=True
+2024-02-15 09:05:57,178 [INFO] Connecting to host irc.rizon.net:6697
+2024-02-15 09:05:57,190 [INFO] Sending command: NICK pyechat
+2024-02-15 09:05:57,191 [INFO] Sent command: NICK pyechat
+2024-02-15 09:05:57,191 [INFO] Sending command: USER pyechat 0 * :Pyechat: https://pyechat.github.io
+2024-02-15 09:05:57,191 [INFO] Sent command: USER pyechat 0 * :Pyechat: https://pyechat.github.io
+2024-02-15 09:05:57,191 [INFO] Connected to host irc.rizon.net:6697 with SSL=True
+2024-02-15 09:05:57,755 [DEBUG] Received line: :irc.mufff.in NOTICE * :*** Looking up your hostname...
+2024-02-15 09:05:57,756 [INFO] Parsing message: :irc.mufff.in NOTICE * :*** Looking up your hostname...
+2024-02-15 09:05:57,756 [DEBUG] Received line: :irc.mufff.in NOTICE * :*** Checking Ident
+2024-02-15 09:05:57,756 [INFO] Parsing message: :irc.mufff.in NOTICE * :*** Checking Ident
+2024-02-15 09:05:57,757 [DEBUG] Received line: :irc.mufff.in NOTICE * :*** Found your hostname
+2024-02-15 09:05:57,757 [INFO] Parsing message: :irc.mufff.in NOTICE * :*** Found your hostname
+2024-02-15 09:05:59,085 [DEBUG] Received line: :irc.mufff.in NOTICE * :*** No Ident response
+2024-02-15 09:05:59,085 [INFO] Parsing message: :irc.mufff.in NOTICE * :*** No Ident response
+2024-02-15 09:05:59,085 [DEBUG] Received line: PING :2490782922
+2024-02-15 09:05:59,085 [INFO] Parsing message: PING :2490782922
+2024-02-15 09:05:59,085 [INFO] Sending command: PONG :2490782922
+2024-02-15 09:05:59,085 [INFO] Sent command: PONG :2490782922
+2024-02-15 09:05:59,187 [DEBUG] Received line: :irc.mufff.in NOTICE pyechat :*** Connected securely via TLSv1.3 TLS_AES_256_GCM_SHA384-256
+2024-02-15 09:05:59,187 [INFO] Parsing message: :irc.mufff.in NOTICE pyechat :*** Connected securely via TLSv1.3 TLS_AES_256_GCM_SHA384-256
+2024-02-15 09:05:59,188 [DEBUG] Received line: :irc.mufff.in NOTICE pyechat :*** Your host is masked (Rizon-274AD7EE.dynamic.chello.pl)
+2024-02-15 09:05:59,188 [INFO] Parsing message: :irc.mufff.in NOTICE pyechat :*** Your host is masked (Rizon-274AD7EE.dynamic.chello.pl)
+2024-02-15 09:05:59,189 [DEBUG] Received line: :irc.mufff.in 001 pyechat :Welcome to the Rizon Internet Relay Chat Network pyechat
+2024-02-15 09:05:59,189 [INFO] Parsing message: :irc.mufff.in 001 pyechat :Welcome to the Rizon Internet Relay Chat Network pyechat
+2024-02-15 09:05:59,189 [DEBUG] Received line: :irc.mufff.in 002 pyechat :Your host is irc.mufff.in, running version plexus-4(hybrid-8.1.20)
+2024-02-15 09:05:59,189 [INFO] Parsing message: :irc.mufff.in 002 pyechat :Your host is irc.mufff.in, running version plexus-4(hybrid-8.1.20)
+2024-02-15 09:05:59,190 [DEBUG] Received line: :irc.mufff.in 003 pyechat :This server was created Jan 22 2022 at 18:54:40
+2024-02-15 09:05:59,190 [INFO] Parsing message: :irc.mufff.in 003 pyechat :This server was created Jan 22 2022 at 18:54:40
+2024-02-15 09:05:59,190 [DEBUG] Received line: :irc.mufff.in 004 pyechat irc.mufff.in plexus-4(hybrid-8.1.20) CDGNRSUWagilopqrswxyz BCIMNORSabcehiklmnopqstvz Iabehkloqv
+2024-02-15 09:05:59,190 [INFO] Parsing message: :irc.mufff.in 004 pyechat irc.mufff.in plexus-4(hybrid-8.1.20) CDGNRSUWagilopqrswxyz BCIMNORSabcehiklmnopqstvz Iabehkloqv
+2024-02-15 09:05:59,191 [DEBUG] Received line: :irc.mufff.in 005 pyechat CALLERID CASEMAPPING=rfc1459 DEAF=D KICKLEN=180 MODES=4 PREFIX=(qaohv)~&@%+ STATUSMSG=~&@%+ EXCEPTS=e INVEX=I NICKLEN=30 NETWORK=Rizon MAXLIST=beI:250 MAXTARGETS=4 :are supported by this server
+2024-02-15 09:05:59,191 [INFO] Parsing message: :irc.mufff.in 005 pyechat CALLERID CASEMAPPING=rfc1459 DEAF=D KICKLEN=180 MODES=4 PREFIX=(qaohv)~&@%+ STATUSMSG=~&@%+ EXCEPTS=e INVEX=I NICKLEN=30 NETWORK=Rizon MAXLIST=beI:250 MAXTARGETS=4 :are supported by this server
+2024-02-15 09:05:59,192 [DEBUG] Received line: :irc.mufff.in 005 pyechat CHANTYPES=# CHANLIMIT=#:250 CHANNELLEN=50 TOPICLEN=390 CHANMODES=beI,k,l,BCMNORScimnpstz KNOCK AWAYLEN=180 WATCH=60 NAMESX UHNAMES ELIST=CMNTU SAFELIST :are supported by this server
+2024-02-15 09:05:59,192 [INFO] Parsing message: :irc.mufff.in 005 pyechat CHANTYPES=# CHANLIMIT=#:250 CHANNELLEN=50 TOPICLEN=390 CHANMODES=beI,k,l,BCMNORScimnpstz KNOCK AWAYLEN=180 WATCH=60 NAMESX UHNAMES ELIST=CMNTU SAFELIST :are supported by this server
+2024-02-15 09:05:59,192 [DEBUG] Received line: :irc.mufff.in 251 pyechat :There are 22 users and 8478 invisible on 17 servers
+2024-02-15 09:05:59,192 [INFO] Parsing message: :irc.mufff.in 251 pyechat :There are 22 users and 8478 invisible on 17 servers
+2024-02-15 09:05:59,193 [DEBUG] Received line: :irc.mufff.in 252 pyechat 46 :IRC Operators online
+2024-02-15 09:05:59,193 [INFO] Parsing message: :irc.mufff.in 252 pyechat 46 :IRC Operators online
+2024-02-15 09:05:59,193 [DEBUG] Received line: :irc.mufff.in 253 pyechat 1 :unknown connection(s)
+2024-02-15 09:05:59,193 [INFO] Parsing message: :irc.mufff.in 253 pyechat 1 :unknown connection(s)
+2024-02-15 09:05:59,194 [DEBUG] Received line: :irc.mufff.in 254 pyechat 7911 :channels formed
+2024-02-15 09:05:59,194 [INFO] Parsing message: :irc.mufff.in 254 pyechat 7911 :channels formed
+2024-02-15 09:05:59,194 [DEBUG] Received line: :irc.mufff.in 255 pyechat :I have 8500 clients and 17 servers
+2024-02-15 09:05:59,194 [INFO] Parsing message: :irc.mufff.in 255 pyechat :I have 8500 clients and 17 servers
+2024-02-15 09:05:59,194 [DEBUG] Received line: :irc.mufff.in 265 pyechat :Current local users: 8500  Max: 11508
+2024-02-15 09:05:59,195 [INFO] Parsing message: :irc.mufff.in 265 pyechat :Current local users: 8500  Max: 11508
+2024-02-15 09:05:59,195 [DEBUG] Received line: :irc.mufff.in 266 pyechat :Current global users: 8500  Max: 11508
+2024-02-15 09:05:59,195 [INFO] Parsing message: :irc.mufff.in 266 pyechat :Current global users: 8500  Max: 11508
+2024-02-15 09:05:59,195 [DEBUG] Received line: :irc.mufff.in 375 pyechat :- irc.mufff.in Message of the Day -
+2024-02-15 09:05:59,195 [INFO] Parsing message: :irc.mufff.in 375 pyechat :- irc.mufff.in Message of the Day -
+2024-02-15 09:05:59,255 [DEBUG] Received line: :irc.mufff.in 372 pyechat :-          11oo                            
+2024-02-15 09:05:59,255 [INFO] Parsing message: :irc.mufff.in 372 pyechat :-          11oo                            
+2024-02-15 09:05:59,256 [DEBUG] Received line: :irc.mufff.in 372 pyechat :-
+2024-02-15 09:05:59,256 [INFO] Parsing message: :irc.mufff.in 372 pyechat :-
+2024-02-15 09:05:59,257 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- 88d888b. dP d888888b .d8888b. 88d888b. 
+2024-02-15 09:05:59,257 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- 88d888b. dP d888888b .d8888b. 88d888b. 
+2024-02-15 09:05:59,257 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- 88'  `88 88    .d8P' 88'  `88 88'  `88 
+2024-02-15 09:05:59,257 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- 88'  `88 88    .d8P' 88'  `88 88'  `88 
+2024-02-15 09:05:59,258 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- 1188       88  .Y8P    88.  .88 88    88 
+2024-02-15 09:05:59,258 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- 1188       88  .Y8P    88.  .88 88    88 
+2024-02-15 09:05:59,259 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- 11dP       dP d888888P `88888P' dP    dP
+2024-02-15 09:05:59,259 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- 11dP       dP d888888P `88888P' dP    dP
+2024-02-15 09:05:59,259 [DEBUG] Received line: :irc.mufff.in 372 pyechat :-
+2024-02-15 09:05:59,260 [INFO] Parsing message: :irc.mufff.in 372 pyechat :-
+2024-02-15 09:05:59,290 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- Rizon Chat Network -- http://rizon.net
+2024-02-15 09:05:59,291 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- Rizon Chat Network -- http://rizon.net
+2024-02-15 09:05:59,292 [DEBUG] Received line: :irc.mufff.in 372 pyechat :-
+2024-02-15 09:05:59,292 [INFO] Parsing message: :irc.mufff.in 372 pyechat :-
+2024-02-15 09:05:59,293 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- Listening on ports: 6660 - 6669, 7000. SSL: 6697, 9999
+2024-02-15 09:05:59,293 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- Listening on ports: 6660 - 6669, 7000. SSL: 6697, 9999
+2024-02-15 09:05:59,294 [DEBUG] Received line: :irc.mufff.in 372 pyechat :-
+2024-02-15 09:05:59,294 [INFO] Parsing message: :irc.mufff.in 372 pyechat :-
+2024-02-15 09:05:59,294 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- Rules:
+2024-02-15 09:05:59,294 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- Rules:
+2024-02-15 09:05:59,295 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- o No spamming or flooding
+2024-02-15 09:05:59,295 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- o No spamming or flooding
+2024-02-15 09:05:59,296 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- o No clones or malicious bots
+2024-02-15 09:05:59,296 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- o No clones or malicious bots
+2024-02-15 09:05:59,297 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- o No takeovers
+2024-02-15 09:05:59,297 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- o No takeovers
+2024-02-15 09:05:59,298 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- o No distribution of child pornography
+2024-02-15 09:05:59,298 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- o No distribution of child pornography
+2024-02-15 09:05:59,299 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- o Clients must respond to VERSION requests
+2024-02-15 09:05:59,299 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- o Clients must respond to VERSION requests
+2024-02-15 09:05:59,299 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- o Rizon staff may disconnect clients for any or no reason
+2024-02-15 09:05:59,299 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- o Rizon staff may disconnect clients for any or no reason
+2024-02-15 09:05:59,300 [DEBUG] Received line: :irc.mufff.in 372 pyechat :-
+2024-02-15 09:05:59,300 [INFO] Parsing message: :irc.mufff.in 372 pyechat :-
+2024-02-15 09:05:59,301 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- First steps:
+2024-02-15 09:05:59,302 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- First steps:
+2024-02-15 09:05:59,303 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- o To register your nick: /msg NickServ HELP
+2024-02-15 09:05:59,303 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- o To register your nick: /msg NickServ HELP
+2024-02-15 09:05:59,304 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- o To register your channel: /msg ChanServ HELP
+2024-02-15 09:05:59,305 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- o To register your channel: /msg ChanServ HELP
+2024-02-15 09:05:59,305 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- o To get a vHost: /msg HostServ HELP REQUEST
+2024-02-15 09:05:59,306 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- o To get a vHost: /msg HostServ HELP REQUEST
+2024-02-15 09:05:59,306 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- o For other help with Rizon: /join #help
+2024-02-15 09:05:59,306 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- o For other help with Rizon: /join #help
+2024-02-15 09:05:59,307 [DEBUG] Received line: :irc.mufff.in 372 pyechat :-
+2024-02-15 09:05:59,307 [INFO] Parsing message: :irc.mufff.in 372 pyechat :-
+2024-02-15 09:05:59,307 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- Usage of this network is a privilege, not a right. Rizon is a
+2024-02-15 09:05:59,307 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- Usage of this network is a privilege, not a right. Rizon is a
+2024-02-15 09:05:59,308 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- transit provider, therefore no person or entity involved with
+2024-02-15 09:05:59,308 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- transit provider, therefore no person or entity involved with
+2024-02-15 09:05:59,308 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- *.rizon.net or irc.mufff.in takes any responsibility for
+2024-02-15 09:05:59,308 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- *.rizon.net or irc.mufff.in takes any responsibility for
+2024-02-15 09:05:59,309 [DEBUG] Received line: :irc.mufff.in 372 pyechat :- users' actions. Absolutely no warranty is expressed or implied.
+2024-02-15 09:05:59,309 [INFO] Parsing message: :irc.mufff.in 372 pyechat :- users' actions. Absolutely no warranty is expressed or implied.
+2024-02-15 09:05:59,309 [DEBUG] Received line: :irc.mufff.in 376 pyechat :End of /MOTD command.
+2024-02-15 09:05:59,309 [INFO] Parsing message: :irc.mufff.in 376 pyechat :End of /MOTD command.
+2024-02-15 09:05:59,309 [INFO] Sending command: JOIN #pyechat
+2024-02-15 09:05:59,309 [INFO] Sent command: JOIN #pyechat
+2024-02-15 09:05:59,310 [DEBUG] Received line: :pyechat!~pyechat@Rizon-274AD7EE.dynamic.chello.pl MODE pyechat :+Six
+2024-02-15 09:05:59,310 [INFO] Parsing message: :pyechat!~pyechat@Rizon-274AD7EE.dynamic.chello.pl MODE pyechat :+Six
+2024-02-15 09:05:59,392 [DEBUG] Received line: :Global!service@rizon.net NOTICE pyechat :[Logon News - Dec 16 2013] Own a large/active channel or plan to get one going? Please read http://s.rizon.net/authline
+2024-02-15 09:05:59,392 [INFO] Parsing message: :Global!service@rizon.net NOTICE pyechat :[Logon News - Dec 16 2013] Own a large/active channel or plan to get one going? Please read http://s.rizon.net/authline
+2024-02-15 09:05:59,392 [DEBUG] Received line: :Global!service@rizon.net NOTICE pyechat :[Logon News - Feb 16 2022] First time on Rizon? Be sure to check out our wiki! https://wiki.rizon.net
+2024-02-15 09:05:59,392 [INFO] Parsing message: :Global!service@rizon.net NOTICE pyechat :[Logon News - Feb 16 2022] First time on Rizon? Be sure to check out our wiki! https://wiki.rizon.net
+2024-02-15 09:05:59,393 [DEBUG] Received line: :Global!service@rizon.net NOTICE pyechat :[Random News - Mar 20 2009] Idle on Rizon a lot? Why not play our idlerpg game, you can check it out at #RizonIRPG for more information visit the website http://idlerpg.rizon.net -Rizon Staff
+2024-02-15 09:05:59,393 [INFO] Parsing message: :Global!service@rizon.net NOTICE pyechat :[Random News - Mar 20 2009] Idle on Rizon a lot? Why not play our idlerpg game, you can check it out at #RizonIRPG for more information visit the website http://idlerpg.rizon.net -Rizon Staff
+2024-02-15 09:05:59,393 [DEBUG] Received line: :pyechat!~pyechat@Rizon-274AD7EE.dynamic.chello.pl JOIN :#pyechat
+2024-02-15 09:05:59,393 [INFO] Parsing message: :pyechat!~pyechat@Rizon-274AD7EE.dynamic.chello.pl JOIN :#pyechat
+2024-02-15 09:05:59,393 [DEBUG] Received line: :irc.mufff.in 332 pyechat #pyechat :Welcome to #pyechat | https://pyechat.github.io | https://github.com/pyechat
+2024-02-15 09:05:59,393 [INFO] Parsing message: :irc.mufff.in 332 pyechat #pyechat :Welcome to #pyechat | https://pyechat.github.io | https://github.com/pyechat
+2024-02-15 09:05:59,395 [DEBUG] Received line: :irc.mufff.in 333 pyechat #pyechat ComputerTech!computerte@ComputerTech.Network 1707880655
+2024-02-15 09:05:59,395 [INFO] Parsing message: :irc.mufff.in 333 pyechat #pyechat ComputerTech!computerte@ComputerTech.Network 1707880655
+2024-02-15 09:05:59,396 [DEBUG] Received line: :irc.mufff.in 353 pyechat = #pyechat :pyechat @Rizon @ComputerTech
+2024-02-15 09:05:59,396 [INFO] Parsing message: :irc.mufff.in 353 pyechat = #pyechat :pyechat @Rizon @ComputerTech
+2024-02-15 09:05:59,396 [DEBUG] Received line: :irc.mufff.in 366 pyechat #pyechat :End of /NAMES list.
+2024-02-15 09:05:59,396 [INFO] Parsing message: :irc.mufff.in 366 pyechat #pyechat :End of /NAMES list.
+2024-02-15 09:05:59,397 [DEBUG] Received line: :py-ctcp!ctcp@ctcp-scanner.rizon.net PRIVMSG pyechat :VERSION
+2024-02-15 09:05:59,398 [INFO] Parsing message: :py-ctcp!ctcp@ctcp-scanner.rizon.net PRIVMSG pyechat :VERSION
+2024-02-15 09:10:45,734 [INFO] Initialized IRCClient with server=irc.rizon.net, port=6697, nickname=pyechat, realname=Pyechat: https://pyechat.github.io, channel=#pyechat, use_ssl=True
+2024-02-15 09:10:45,734 [INFO] Connecting to host irc.rizon.net:6697
+2024-02-15 09:10:45,749 [INFO] Sending command: NICK pyechat
+2024-02-15 09:10:45,750 [INFO] Sent command: NICK pyechat
+2024-02-15 09:10:45,750 [INFO] Sending command: USER pyechat 0 * :Pyechat: https://pyechat.github.io
+2024-02-15 09:10:45,751 [INFO] Sent command: USER pyechat 0 * :Pyechat: https://pyechat.github.io
+2024-02-15 09:10:45,751 [INFO] Connected to host irc.rizon.net:6697 with SSL=True
+2024-02-15 09:10:46,334 [DEBUG] Received line: :irc.uworld.se NOTICE * :*** Looking up your hostname...
+2024-02-15 09:10:46,334 [DEBUG] Received line: :irc.uworld.se NOTICE * :*** Checking Ident
+2024-02-15 09:10:46,335 [DEBUG] Received line: :irc.uworld.se NOTICE * :*** Found your hostname
+2024-02-15 09:10:48,175 [DEBUG] Received line: :irc.uworld.se NOTICE * :*** No Ident response
+2024-02-15 09:10:48,175 [DEBUG] Received line: PING :3098044430
+2024-02-15 09:10:48,176 [INFO] Sending command: PONG :3098044430
+2024-02-15 09:10:48,176 [INFO] Sent command: PONG :3098044430
+2024-02-15 09:10:48,278 [DEBUG] Received line: :irc.uworld.se NOTICE pyechat :*** Connected securely via TLSv1.3 TLS_AES_256_GCM_SHA384-256
+2024-02-15 09:10:48,278 [DEBUG] Received line: :irc.uworld.se NOTICE pyechat :*** Your host is masked (Rizon-274AD7EE.dynamic.chello.pl)
+2024-02-15 09:10:48,279 [DEBUG] Received line: :irc.uworld.se 001 pyechat :Welcome to the Rizon Internet Relay Chat Network pyechat
+2024-02-15 09:10:48,279 [DEBUG] Received line: :irc.uworld.se 002 pyechat :Your host is irc.uworld.se, running version plexus-4(hybrid-8.1.20)
+2024-02-15 09:10:48,280 [DEBUG] Received line: :irc.uworld.se 003 pyechat :This server was created Jun 27 2022 at 15:27:35
+2024-02-15 09:10:48,280 [DEBUG] Received line: :irc.uworld.se 004 pyechat irc.uworld.se plexus-4(hybrid-8.1.20) CDGNRSUWagilopqrswxyz BCIMNORSabcehiklmnopqstvz Iabehkloqv
+2024-02-15 09:10:48,281 [DEBUG] Received line: :irc.uworld.se 005 pyechat CALLERID CASEMAPPING=rfc1459 DEAF=D KICKLEN=180 MODES=4 PREFIX=(qaohv)~&@%+ STATUSMSG=~&@%+ EXCEPTS=e INVEX=I NICKLEN=30 NETWORK=Rizon MAXLIST=beI:250 MAXTARGETS=4 :are supported by this server
+2024-02-15 09:10:48,282 [DEBUG] Received line: :irc.uworld.se 005 pyechat CHANTYPES=# CHANLIMIT=#:250 CHANNELLEN=50 TOPICLEN=390 CHANMODES=beI,k,l,BCMNORScimnpstz AWAYLEN=180 KNOCK ELIST=CMNTU SAFELIST NAMESX UHNAMES WATCH=60 :are supported by this server
+2024-02-15 09:10:48,282 [DEBUG] Received line: :irc.uworld.se 251 pyechat :There are 22 users and 8476 invisible on 17 servers
+2024-02-15 09:10:48,282 [DEBUG] Received line: :irc.uworld.se 252 pyechat 46 :IRC Operators online
+2024-02-15 09:10:48,283 [DEBUG] Received line: :irc.uworld.se 254 pyechat 7913 :channels formed
+2024-02-15 09:10:48,283 [DEBUG] Received line: :irc.uworld.se 255 pyechat :I have 8498 clients and 17 servers
+2024-02-15 09:10:48,284 [DEBUG] Received line: :irc.uworld.se 265 pyechat :Current local users: 8498  Max: 10409
+2024-02-15 09:10:48,381 [DEBUG] Received line: :irc.uworld.se 266 pyechat :Current global users: 8498  Max: 10409
+2024-02-15 09:10:48,381 [DEBUG] Received line: :irc.uworld.se 375 pyechat :- irc.uworld.se Message of the Day -
+2024-02-15 09:10:48,435 [DEBUG] Received line: :irc.uworld.se 372 pyechat :-          11oo                            
+2024-02-15 09:10:48,436 [DEBUG] Received line: :irc.uworld.se 372 pyechat :-
+2024-02-15 09:10:48,436 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- 88d888b. dP d888888b .d8888b. 88d888b. 
+2024-02-15 09:10:48,437 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- 88'  `88 88    .d8P' 88'  `88 88'  `88 
+2024-02-15 09:10:48,438 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- 1188       88  .Y8P    88.  .88 88    88 
+2024-02-15 09:10:48,438 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- 11dP       dP d888888P `88888P' dP    dP
+2024-02-15 09:10:48,439 [DEBUG] Received line: :irc.uworld.se 372 pyechat :-
+2024-02-15 09:10:48,440 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- Rizon Chat Network -- http://rizon.net
+2024-02-15 09:10:48,440 [DEBUG] Received line: :irc.uworld.se 372 pyechat :-
+2024-02-15 09:10:48,441 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- Listening on ports: 6660 - 6669, 7000. SSL: 6697, 9999
+2024-02-15 09:10:48,442 [DEBUG] Received line: :irc.uworld.se 372 pyechat :-
+2024-02-15 09:10:48,443 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- Rules:
+2024-02-15 09:10:48,445 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o No spamming or flooding
+2024-02-15 09:10:48,445 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o No clones or malicious bots
+2024-02-15 09:10:48,446 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o No takeovers
+2024-02-15 09:10:48,447 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o No distribution of child pornography
+2024-02-15 09:10:48,447 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o Clients must respond to VERSION requests
+2024-02-15 09:10:48,448 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o Rizon staff may disconnect clients for any or no reason
+2024-02-15 09:10:48,448 [DEBUG] Received line: :irc.uworld.se 372 pyechat :-
+2024-02-15 09:10:48,449 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- First steps:
+2024-02-15 09:10:48,449 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o To register your nick: /msg NickServ HELP
+2024-02-15 09:10:48,450 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o To register your channel: /msg ChanServ HELP
+2024-02-15 09:10:48,452 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o To get a vHost: /msg HostServ HELP REQUEST
+2024-02-15 09:10:48,452 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- o For other help with Rizon: /join #help
+2024-02-15 09:10:48,453 [DEBUG] Received line: :irc.uworld.se 372 pyechat :-
+2024-02-15 09:10:48,454 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- Usage of this network is a privilege, not a right. Rizon is a
+2024-02-15 09:10:48,455 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- transit provider, therefore no person or entity involved with
+2024-02-15 09:10:48,456 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- *.rizon.net or irc.uworld.se takes any responsibility for
+2024-02-15 09:10:48,457 [DEBUG] Received line: :irc.uworld.se 372 pyechat :- users' actions. Absolutely no warranty is expressed or implied.
+2024-02-15 09:10:48,458 [DEBUG] Received line: :irc.uworld.se 376 pyechat :End of /MOTD command.
+2024-02-15 09:10:48,458 [INFO] Sending command: JOIN #pyechat
+2024-02-15 09:10:48,458 [INFO] Sent command: JOIN #pyechat
+2024-02-15 09:10:48,688 [DEBUG] Received line: :pyechat!~pyechat@Rizon-274AD7EE.dynamic.chello.pl MODE pyechat :+Six
+2024-02-15 09:10:48,688 [DEBUG] Received line: :Global!service@rizon.net NOTICE pyechat :[Logon News - Dec 16 2013] Own a large/active channel or plan to get one going? Please read http://s.rizon.net/authline
+2024-02-15 09:10:48,689 [DEBUG] Received line: :Global!service@rizon.net NOTICE pyechat :[Logon News - Feb 16 2022] First time on Rizon? Be sure to check out our wiki! https://wiki.rizon.net
+2024-02-15 09:10:48,689 [DEBUG] Received line: :Global!service@rizon.net NOTICE pyechat :[Random News - May 07 2013] Looking for a quotes, trivia, or other extra bots? /msg funserv help
+2024-02-15 09:10:48,689 [DEBUG] Received line: :py-ctcp!ctcp@ctcp-scanner.rizon.net PRIVMSG pyechat :VERSION
+2024-02-15 09:10:48,690 [DEBUG] Received line: :pyechat!~pyechat@Rizon-274AD7EE.dynamic.chello.pl JOIN :#pyechat
+2024-02-15 09:10:48,690 [DEBUG] Received line: :irc.uworld.se 332 pyechat #pyechat :Welcome to #pyechat | https://pyechat.github.io | https://github.com/pyechat | Version: 0.0.1-alpha.1
+2024-02-15 09:10:48,691 [DEBUG] Received line: :irc.uworld.se 333 pyechat #pyechat ComputerTech!computerte@ComputerTech.Network 1707984529
+2024-02-15 09:10:48,692 [DEBUG] Received line: :irc.uworld.se 353 pyechat = #pyechat :pyechat @Rizon @ComputerTech
+2024-02-15 09:10:48,692 [DEBUG] Received line: :irc.uworld.se 366 pyechat #pyechat :End of /NAMES list.
