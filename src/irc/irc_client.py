@@ -21,7 +21,7 @@ class IRCClient(QObject):
         self.channel = channel
         self.use_ssl = use_ssl
 
-        self.logger = Logger('logs/irc_client.log')  # Create an instance of Logger
+        self.logger = Logger('logs/irc_client.log')
         self.logger.info(f'Initialized IRCClient with server={server}, port={port}, nickname={nickname}, realname={realname}, channel={channel}, use_ssl={use_ssl}')
 
     @pyqtSlot()
@@ -99,6 +99,7 @@ class IRCClient(QObject):
 
             elif 'End of /MOTD command.' in line:
                 self.send_command(f'JOIN {self.channel}')
+                self.send_command(f'NAMES {self.channel}')
 
     @pyqtSlot(QSslSocket.SocketError)
     def on_error_occurred(self, socket_error):
@@ -111,7 +112,9 @@ class IRCClient(QObject):
             if cmd in ['JOIN', 'PART']:
                 args = args.split(' ', 1)[0]
             self.socket.write(f'{cmd} {args}\r\n'.encode())
-            self.logger.info(f'Sent command: {cmd} {args}')  # Log the command sent
+            self.logger.info(f'Sent command: {cmd} {args}')
         else:
             self.socket.write(f'{command}\r\n'.encode())
-            self.logger.info(f'Sent command: {command}')  # Log the command sent
+            self.logger.info(f'Sent command: {command}')
+
+    
