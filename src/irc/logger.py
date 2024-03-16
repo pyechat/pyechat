@@ -1,14 +1,19 @@
 import logging
-import os
+
+from src.irc.json_formatter import JsonFormatter
+
 
 class Logger:
-    def __init__(self, log_file):
-        self.log_file = log_file
-        os.makedirs(os.path.dirname(log_file), exist_ok=True)
-        logging.basicConfig(level=logging.DEBUG,
-                            format='%(asctime)s [%(levelname)s] %(message)s',
-                            handlers=[logging.FileHandler(log_file),
-                                      logging.StreamHandler()])
+    def __init__(self):
+        json_formatter = JsonFormatter({"level": "levelname",
+                                        "message": "message",
+                                        "loggerName": "name",
+                                        "processName": "processName",
+                                        "processID": "process",
+                                        "threadName": "threadName",
+                                        "threadID": "thread",
+                                        "timestamp": "asctime"})
+        logging.Formatter(json_formatter)
 
     def log(self, level, message):
         if level.lower() == 'debug':
@@ -19,15 +24,3 @@ class Logger:
             logging.warning(message)
         elif level.lower() == 'error':
             logging.error(message)
-
-    def debug(self, message):
-        self.log('debug', message)
-
-    def info(self, message):
-        self.log('info', message)
-
-    def warning(self, message):
-        self.log('warning', message)
-
-    def error(self, message):
-        self.log('error', message)
