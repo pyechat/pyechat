@@ -1,100 +1,84 @@
-from PyQt6.QtCore import pyqtSlot
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QTreeWidget, QTreeWidgetItem, QSplitter, QStackedWidget
+from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QListWidget, QTextEdit, QLineEdit, QLabel
 from PyQt6.QtCore import Qt
+from src.irc.irc_client import IRCClient  # Assuming you have an irc_client.py file with IRCClient class
 
-class MainWindow(QWidget):
+class MainWindow(QMainWindow):
     def __init__(self, client):
         super().__init__()
 
-        self.client = client
-        self.client.received_message.connect(self.on_received_message)
+        self.setWindowTitle("PyeChat")
+        self.setGeometry(100, 100, 800, 600)
 
-        self.nicklists = {}
-        self.nicklist_items = {}
-        self.text_areas = {}
+        self.centralWidget = QWidget()
+        self.setCentralWidget(self.centralWidget)
 
-        self.layout = QVBoxLayout(self)
+        self.mainLayout = QHBoxLayout(self.centralWidget)
+        self.leftLayout = QVBoxLayout()
+        self.middleLayout = QVBoxLayout()
+        self.rightLayout = QVBoxLayout()
+        self.nickLists = {}
+        self.channelList = QListWidget()
+        self.nickList = QListWidget()
+        self.chatWindow = QTextEdit()
+        self.inputText = QLineEdit()
+        self.topicLabel = QLabel()
+        self.middleLayout.insertWidget(0, self.topicLabel)
+        self.channelList.setMaximumWidth(150)
+        self.nickList.setMaximumWidth(150)
 
-        self.splitter = QSplitter(self)
-        self.layout.addWidget(self.splitter)
-        self.input_line = QLineEdit(self)
-        self.layout.addWidget(self.input_line)
-        self.tree_widget = QTreeWidget(self)
-        self.tree_widget.setHeaderLabel("Channels")
-        self.splitter.addWidget(self.tree_widget)
-        self.input_line.returnPressed.connect(self.on_return_pressed)
-        self.stacked_widget = QStackedWidget(self)
-        self.splitter.addWidget(self.stacked_widget)
+        self.leftLayout.addWidget(self.channelList)
+        self.middleLayout.addWidget(self.chatWindow)
+        self.middleLayout.addWidget(self.inputText)
+        self.rightLayout.addWidget(self.nickList)
 
-        self.nicklist_widget = QTreeWidget(self)
-        self.nicklist_widget.setHeaderLabel("Nicklist")
-        self.splitter.addWidget(self.nicklist_widget)
+        self.mainLayout.addLayout(self.leftLayout)
+        self.mainLayout.addLayout(self.middleLayout)
+        self.mainLayout.addLayout(self.rightLayout)
 
-        self.tree_widget.itemClicked.connect(self.on_item_clicked)
+        #self.irc_client = IRCClient("irc.technet.chat", 6667, "pyechat", "pyechat", "")
+        self.irc_client = client
+        self.irc_client.received_message.connect(self.chatWindow.append)
+        self.irc_client.received_nick_list.connect(self.updateNickList)
+        self.irc_client.received_topic.connect(self.updateTopic)
+        self.irc_client.connect_to_host()
+        self.channelList.itemClicked.connect(self.changeChannel)
+        self.inputText.returnPressed.connect(self.sendChatMessage)
 
-    @pyqtSlot(QTreeWidgetItem, int)
-    def on_item_clicked(self, item, column):
-        channel = item.text(0)
-        self.stacked_widget.setCurrentWidget(self.text_areas[channel])
+        self.channelList.addItem("TechNet")
 
-    @pyqtSlot(str)
-    def on_received_message(self, message):
-        parts = message.split(' ', 3)
-        if len(parts) < 4:
-            return
-        user, _, channel, text = parts
-        user = user[1:].split('!', 1)[0]
-        channel = channel if channel.startswith('#') else user
-        text = text[1:]
+    def updateTopic(self, topic):
+        self.topicLabel.setText(topic)
 
-        # Check if the message is a /NAMES list
-        if '!' not in user and text.startswith("#"):
-            # Extract the nicknames and add them to the nicklist
-            nicknames = text.split(':')[1].split()
-            self.nicklists[channel] = set(nicknames)
-        else:
-            self.add_channel_item(channel)
-            self.text_areas[channel].append(f'<{user}> {text}')
+    def changeChannel(self, item):
+        new_channel = item.text()
+        self.irc_client.switch_channel(new_channel)
+        self.nickList.clear()
+        self.irc_client.get_nick_list()
 
-        # Update the nicklist display
-        self.nicklist_widget.clear()
-        if channel in self.nicklists:
-            if channel not in self.nicklist_items:
-                self.nicklist_items[channel] = QTreeWidgetItem(self.nicklist_widget)
-                self.nicklist_items[channel].setText(0, channel)
-            channel_item = self.nicklist_items[channel]
-            channel_item.takeChildren()
-            for nick in self.nicklists[channel]:
-                nick_item = QTreeWidgetItem(channel_item)
-                nick_item.setText(0, nick)
+    def sendChatMessage(self):
+        message = self.inputText.text()
+        if message:
+            if message.startswith('/'):
+                command = message[1:]
+                self.irc_client.send_command(command)
+                if command.startswith('join '):
+                    channel = command.split(' ', 1)[1]
+                    self.channelList.addItem(channel)
+            else:
+                self.irc_client.send_command(f'PRIVMSG {self.irc_client.channel} :{message}')
+                self.chatWindow.append(f'<{self.irc_client.nickname}> {message}')  # Append the message to the chatWindow
+            self.inputText.clear()
 
-    @pyqtSlot()
-    def on_return_pressed(self):
-        message = self.input_line.text()
-        self.input_line.clear()
+    def openPrivateMessage(self, user):
+        self.irc_client.send_command(f'QUERY {user}')
+        self.channelList.addItem(user)
 
-        current_item = self.tree_widget.currentItem()
-        if current_item is None:
-            return
-
-        channel = current_item.text(0)
-        if message.startswith('/'):
-            if ' ' in message:
-                command, args = message[1:].split(' ', 1)
-                if command in ['join', 'part']:
-                    channel = args.split(' ', 1)[0]
-                    self.client.send_command(f'{command.upper()} {channel}')
-                    if command == 'join':
-                        self.add_channel_item(channel)
-        else:
-            self.client.send_command(f'PRIVMSG {channel} :{message}')
-            self.text_areas[channel].append(f'<{self.client.nickname}> {message}')
-
-    def add_channel_item(self, channel):
-        if channel not in self.text_areas:
-            text_area = QTextEdit(self)
-            text_area.setReadOnly(True)
-            self.text_areas[channel] = text_area
-            self.stacked_widget.addWidget(text_area)
-            channel_item = QTreeWidgetItem(self.tree_widget)
-            channel_item.setText(0, channel)
+    def updateNickList(self, channel_nick):
+        channel, nick = channel_nick
+        if channel == self.irc_client.channel:
+            if nick not in [self.nickList.item(i).text() for i in range(self.nickList.count())]:
+                self.nickList.addItem(nick)
+            else:
+                items = self.nickList.findItems(nick, Qt.MatchExactly)
+                if items:
+                    self.nickList.takeItem(self.nickList.row(items[0]))
