@@ -114,13 +114,20 @@ class IRCClient(QObject):
                 nospoof = args[0][1:] if args[0].startswith(':') else args[0]
                 self.send_command(f'PONG :{nospoof}')
 
-            elif 'End of /MOTD command.' in line:
+            elif '001' in line:
                 # Remove the line that sends the JOIN command
                 self.get_nick_list()  # Get the nicklist after joining the channel
 
             elif command == '353':  # Response for NAMES command
                 channel = args[2]
                 nick_list = ' '.join(args[3:]).split()  # Parse the nicknames
+
+                # Define the order of the prefixes
+                prefix_order = {'~': 0, '&': 1, '@': 2, '%': 3, '+': 4}
+
+                # Sort the nicknames based on the order of their prefixes
+                nick_list.sort(key=lambda nick: prefix_order.get(nick[0], 5))
+
                 self.nick_lists[channel] = nick_list  # Add this line
                 for nick in nick_list:
                     self.received_nick_list.emit((channel, nick))  # Modify this line
