@@ -1,19 +1,23 @@
-from PyQt6.QtWidgets import QApplication, QDialog
+from PyQt6.QtWidgets import QApplication
 from src.irc.irc_client import IRCClient
-from src.gui.connect_dialog import ConnectDialog
 from src.gui.main_window import MainWindow
 import sys
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
-    dialog = ConnectDialog()
-    if dialog.exec() == QDialog.DialogCode.Accepted:
-        host, port, nick, realname, channel, use_ssl = dialog.get_values()
-        client = IRCClient(host, port, nick, realname, channel, use_ssl)
-        client.connect_to_host()
+    # Define your default connection values
+    host = "irc.rizon.net"
+    port = 6667 # This should be a string representing an integer
+    nick = "your_nick"
+    realname = "your_realname"
+    channel = "your_channel"
+    use_ssl = False  # or True
 
-        window = MainWindow(client)
-        window.show()
+    client = IRCClient(host, int(port), nick, realname, channel, use_ssl)  # Convert port to int
+    client.connect_to_host()
 
-        sys.exit(app.exec())
+    window = MainWindow(client)
+    window.show()
+
+    sys.exit(app.exec())
