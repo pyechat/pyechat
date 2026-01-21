@@ -1,2 +1,9 @@
-env
-__pycache__
+env/
+__pycache__/
+logs/
+.venv/
+settings.json
+networks.json
+*.ico
+*.png
+!src/

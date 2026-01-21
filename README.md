@@ -19,4 +19,5 @@ To get started with PyeChat, you'll need to clone the repository, install the de
 git clone https://github.com/yourusername/pyechat.git
 cd pyechat
 pip install -r requirements.txt or sudo apt install python3-pyqt5
-python main_window.py
+python main.py
+```

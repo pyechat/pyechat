@@ -1,23 +1,20 @@
-from PyQt6.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt
 from src.irc.irc_client import IRCClient
 from src.gui.main_window import MainWindow
 import sys
 
 if __name__ == '__main__':
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")
+    app.setApplicationName("PyeChat")
+    app.setDesktopFileName("pyechat.desktop")
+    app.setWindowIcon(QIcon('/home/colby/projects/pyechat/pyechat.ico'))
 
-    # Define your default connection values
-    host = "irc.rizon.net"
-    port = 6667 # This should be a string representing an integer
-    nick = "your_nick"
-    realname = "your_realname"
-    channel = "your_channel"
-    use_ssl = False  # or True
-
-    client = IRCClient(host, int(port), nick, realname, channel, use_ssl)  # Convert port to int
-    client.connect_to_host()
-
-    window = MainWindow(client)
+    window = MainWindow()
     window.show()
 
-    sys.exit(app.exec())
+    sys.exit(app.exec_())

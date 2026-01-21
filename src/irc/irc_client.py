@@ -1,156 +1,267 @@
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
-from PyQt6.QtNetwork import QSslSocket
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
+from PyQt5.QtNetwork import QSslSocket
 from src.irc.logger import Logger
 import datetime
+import base64
 
 class IRCClient(QObject):
-    received_message = pyqtSignal(str)
-    received_nick_list = pyqtSignal(tuple)  # Change str to tuple
-    received_topic = pyqtSignal(str)
-    received_channel = pyqtSignal(str)
+    received_message = pyqtSignal(str, str, dict) # target, message, tags
+    received_nick_list = pyqtSignal(tuple)  # (channel, nick)
+    received_topic = pyqtSignal(str, str)   # channel, topic
+    connected_to_server = pyqtSignal(str)   # network_name
+    disconnected_from_server = pyqtSignal(str) # network_name
+    parted_channel = pyqtSignal(str, str)   # channel, nick
+    nick_changed = pyqtSignal(str, str)     # old, new
+    received_kick = pyqtSignal(str, str, str, str) # channel, kicked_nick, kicker, reason
+    received_mode = pyqtSignal(str, str, str)      # channel, sender, mode_string
+    received_notice = pyqtSignal(str, str, str)    # target, sender, message
+    received_invite = pyqtSignal(str, str, str)    # channel, sender, invited_nick
+    event_received = pyqtSignal(str, str, list, dict) # command, sender, args, tags
 
-    def __init__(self, server, port, nickname, realname, channel, use_ssl=False):
+    def __init__(self, network_name, server, port, nickname, realname, auto_join_channels=None, use_ssl=False, password=None, auto_reconnect=True, sasl_method=None, sasl_user=None, sasl_pass=None, auto_commands=None):
         super().__init__()
-
         self.socket = QSslSocket()
         self.socket.readyRead.connect(self.on_ready_read)
         self.socket.errorOccurred.connect(self.on_error_occurred)
         self.socket.connected.connect(self.start_encryption)
-        self.nick_lists = {}
+        self.socket.encrypted.connect(self.on_socket_connected)
+        self.socket.disconnected.connect(self.on_disconnected)
+        self.socket.sslErrors.connect(self.on_ssl_errors)
+        
+        self.network_name = network_name
         self.server = server
         self.port = port
         self.nickname = nickname
         self.realname = realname
-        self.channel = channel
+        self.auto_join_channels = auto_join_channels or []
         self.use_ssl = use_ssl
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.send_ping)
-        self.timer.start(60000)  # 60 seconds
+        self.password = password
+        self.auto_reconnect = auto_reconnect
+        self.sasl_method = sasl_method # None, "PLAIN", "EXTERNAL"
+        self.sasl_user = sasl_user
+        self.sasl_pass = sasl_pass
+        self.auto_commands = auto_commands or []
+        
+        self.is_registered = False
+        self.capabilities = ["server-time", "multi-prefix", "away-notify", "account-notify", "extended-join"]
+        if self.sasl_method:
+            self.capabilities.append("sasl")
+
+        self.ping_timer = QTimer()
+        self.ping_timer.timeout.connect(self.send_ping)
+        self.ping_timer.start(60000)
+        
+        self.reconnect_timer = QTimer()
+        self.reconnect_timer.setSingleShot(True)
+        self.reconnect_timer.timeout.connect(self.connect_to_host)
+        
         self.logger = Logger('logs/irc_client.log')
-        self.logger.info(f'Initialized IRCClient with server={server}, port={port}, nickname={nickname}, realname={realname}, channel={channel}, use_ssl={use_ssl}')
 
-    @pyqtSlot()
     def start_encryption(self):
-        if self.use_ssl:
-            self.socket.startClientEncryption()
+        if self.use_ssl: self.socket.startClientEncryption()
+        else: self.on_socket_connected()
 
-    def get_nick_list(self):
-        self.send_command(f'NAMES {self.channel}')
+    def on_socket_connected(self):
+        self.reconnect_timer.stop()
+        self.send_command('CAP LS 302')
+        if self.password:
+            self.send_command(f'PASS {self.password}')
+        self.send_command(f'NICK {self.nickname}')
+        self.send_command(f'USER {self.nickname} 0 * :{self.realname}')
 
     def connect_to_host(self):
-        if self.use_ssl and not QSslSocket.supportsSsl():
-            self.logger.error("This system does not support SSL.")
-            return
-
-        self.logger.info(f'Connecting to host {self.server}:{self.port}')
+        if self.socket.state() != QSslSocket.UnconnectedState:
+            self.socket.abort()
+        
+        self.logger.info(f"Connecting to {self.server}:{self.port}")
         if self.use_ssl:
             self.socket.connectToHostEncrypted(self.server, self.port)
         else:
             self.socket.connectToHost(self.server, self.port)
-        self.send_command(f'NICK {self.nickname}')
-        self.send_command(f'USER {self.nickname} 0 * :{self.realname}')
-        self.logger.info(f'Connected to host {self.server}:{self.port} with SSL={self.use_ssl}')
-        self.send_command("LIST")  # Send the LIST command after connecting to the host
 
-    def decode(self, bytes):
-        encodings = ['utf-8', 'latin1', 'iso-8859-1', 'cp1252']
-        for encoding in encodings:
-            try: 
-                return bytes.decode(encoding)
-            except UnicodeDecodeError:
-                continue
-        self.logger.error('None of the encodings could decode the bytes.')
-        raise UnicodeDecodeError("None of the encodings could decode the bytes.")
+    def on_disconnected(self):
+        self.is_registered = False
+        self.disconnected_from_server.emit(self.network_name)
+        if self.auto_reconnect:
+            self.logger.info("Connection lost. Retrying in 5 seconds...")
+            self.reconnect_timer.start(5000)
+
+    def decode(self, bytes_data):
+        for enc in ['utf-8', 'latin1', 'cp1252']:
+            try: return bytes_data.decode(enc)
+            except: continue
+        return bytes_data.decode('utf-8', errors='replace')
 
     def parse_message(self, message):
         tags = {}
-        server_time = None
         if message.startswith('@'):
-            tags_str, message = message[1:].split(' ', 1)
-            tags = dict(tag.split('=') for tag in tags_str.split(';'))
-            if 'time' in tags:
-                server_time = datetime.datetime.fromisoformat(tags['time'].replace('Z', '+00:00'))
+            try:
+                tags_str, message = message[1:].split(' ', 1)
+                for tag in tags_str.split(';'):
+                    if '=' in tag:
+                        key, val = tag.split('=', 1)
+                        val = val.replace('\\:', ';').replace('\\s', ' ').replace('\\\\', '\\').replace('\\r', '\r').replace('\\n', '\n')
+                        tags[key] = val
+                    else:
+                        tags[tag] = True
+            except: pass
 
         parts = message.split()
-        if len(parts) < 2:
-            return None, None, [], tags, server_time
+        if not parts: return tags, None, None, []
         source = parts[0][1:] if parts[0].startswith(':') else None
         command = parts[1] if source else parts[0]
         args_start = 2 if source else 1
         args = []
-        trailing_arg_start = None
+        trailing = None
         for i, part in enumerate(parts[args_start:], args_start):
             if part.startswith(':'):
-                trailing_arg_start = i
+                trailing = ' '.join(parts[i:])[1:]
                 break
-            else:
-                args.append(part)
-        if trailing_arg_start is not None:
-            args.append(' '.join(parts[trailing_arg_start:])[1:])
-        return source, command, args, tags, server_time
-
-    def send_ping(self):
-        self.send_command(f'PING :{self.server}')
-
-    def switch_channel(self, new_channel):
-        # Update the current channel
-        self.channel = new_channel
-        # Join the new channel
-        self.send_command(f'JOIN {new_channel}')
+            args.append(part)
+        if trailing is not None: args.append(trailing)
+        return tags, source, command, args
 
     @pyqtSlot()
     def on_ready_read(self):
         while self.socket.canReadLine():
-            line = self.socket.readLine().data()
-            line = self.decode(line).strip()
-            self.logger.debug(f'Received line: {line}')
+            line = self.decode(self.socket.readLine().data()).strip()
+            tags, source, command, args = self.parse_message(line)
+            if not command: continue
 
-            source, command, args, _, _ = self.parse_message(line)
-
-            if command == 'NICK' and source.split('!')[0] == self.nickname:
-                self.nickname = args[0]
+            sender = source.split('!')[0] if source else self.server
+            # Emit generic event for dynamic handling in UI
+            self.event_received.emit(command, sender, args, tags)
 
             if command == 'PING':
-                nospoof = args[0][1:] if args[0].startswith(':') else args[0]
-                self.send_command(f'PONG :{nospoof}')
+                self.send_command(f'PONG :{args[0]}')
+            
+            elif command == 'CAP':
+                sub_cmd = args[1]
+                if sub_cmd == 'LS':
+                    supported = args[2].split()
+                    to_req = [cap for cap in self.capabilities if cap in supported]
+                    if to_req: self.send_command(f"CAP REQ :{' '.join(to_req)}")
+                    else: self.send_command('CAP END')
+                elif sub_cmd == 'ACK':
+                    if 'sasl' in args[2]:
+                        self.send_command(f'AUTHENTICATE {self.sasl_method}')
+                    else:
+                        self.send_command('CAP END')
+                elif sub_cmd == 'NAK':
+                    self.send_command('CAP END')
 
-            elif '001' in line:
-                # Remove the line that sends the JOIN command
-                self.get_nick_list()  # Get the nicklist after joining the channel
+            elif command == 'AUTHENTICATE':
+                if args[0] == '+':
+                    if self.sasl_method == 'PLAIN':
+                        auth_str = f"{self.sasl_user}\0{self.sasl_user}\0{self.sasl_pass}"
+                        b64_auth = base64.b64encode(auth_str.encode()).decode()
+                        self.send_command(f'AUTHENTICATE {b64_auth}')
+                    elif self.sasl_method == 'EXTERNAL':
+                        self.send_command('AUTHENTICATE +')
+            
+            elif command == '903': # SASL Successful
+                self.received_message.emit("", "*** SASL authentication successful", tags)
+                self.send_command('CAP END')
+            
+            elif command in ['904', '905', '907']: # SASL Failed
+                self.received_message.emit("", f"*** SASL authentication failed ({command})", tags)
+                self.send_command('CAP END')
 
-            elif command == '353':  # Response for NAMES command
-                channel = args[2]
-                nick_list = ' '.join(args[3:]).split()  # Parse the nicknames
+            elif command == '001':
+                self.is_registered = True
+                self.nickname = args[0]
+                self.received_message.emit("", f"*** Connected to {self.server}", tags)
+                self.connected_to_server.emit(self.network_name)
+                # Auto-Commands (Perform)
+                for cmd in self.auto_commands: self.send_command(cmd)
+                for chan in self.auto_join_channels: self.send_command(f'JOIN {chan}')
 
-                # Define the order of the prefixes
-                prefix_order = {'~': 0, '&': 1, '@': 2, '%': 3, '+': 4}
+            elif command == 'PRIVMSG':
+                target, msg = args[0], args[1]
+                if msg.startswith('\x01') and msg.endswith('\x01'):
+                    self.handle_ctcp(sender, target, msg[1:-1])
+                else:
+                    route_to = sender if target.lower() == self.nickname.lower() else target
+                    self.received_message.emit(route_to, f'<{sender}> {msg}', tags)
 
-                # Sort the nicknames based on the order of their prefixes
-                nick_list.sort(key=lambda nick: prefix_order.get(nick[0], 5))
+            elif command == 'NOTICE':
+                target, msg = args[0], args[1]
+                self.received_notice.emit(target, sender, msg)
 
-                self.nick_lists[channel] = nick_list  # Add this line
-                for nick in nick_list:
-                    self.received_nick_list.emit((channel, nick))  # Modify this line
+            elif command == 'INVITE':
+                invited_nick, chan = args[0], args[1]
+                self.received_invite.emit(chan, sender, invited_nick)
 
-            elif command == '332':  # Response for TOPIC command
-                topic = ' '.join(args[2:])  # Parse the topic
-                self.received_topic.emit(topic)  # Emit the topic
+            elif command == 'JOIN':
+                chan = args[0]
+                self.received_nick_list.emit((chan, sender))
 
-            elif command == 'PRIVMSG':  # Message in a channel
-                channel = args[0]
-                message = args[1]
-                if channel == self.channel:  # If the message is in the current channel
-                    self.received_message.emit(f'{source.split("!")[0]}: {message}')  # Emit the message
+            elif command == 'PART':
+                chan = args[0]
+                self.parted_channel.emit(chan, sender)
 
-            elif command == "322":  # RPL_LIST
-                channel = args[1]
-                self.received_channel.emit(channel)  # Emit the channel
+            elif command == 'QUIT':
+                reason = args[0] if args else "Quit"
+                self.received_message.emit("", f"quit {sender} {reason}", tags) # Internal trigger
+                self.parted_channel.emit("", sender)
+
+            elif command == 'NICK':
+                new_nick = args[0]
+                if sender == self.nickname: self.nickname = new_nick
+                self.nick_changed.emit(sender, new_nick)
+
+            elif command == 'KICK':
+                chan, target, reason = args[0], args[1], args[2] if len(args) > 2 else ""
+                self.received_kick.emit(chan, target, sender, reason)
+
+            elif command == 'MODE':
+                chan, mode = args[0], " ".join(args[1:])
+                self.received_mode.emit(chan, sender, mode)
+
+            elif command == '332': # Topic
+                self.received_topic.emit(args[1], args[2])
+
+                chan = args[2]
+                for n in args[3].split():
+                    self.received_nick_list.emit((chan, n))
+
+            elif command.isdigit():
+                # Generic numeric handling for connection info/MOTD
+                # Skip 353 and 332 as they are handled above/elsewhere
+                if command not in ['332', '353']:
+                    text = args[-1] if args else ""
+                    self.received_message.emit("", f"[{command}] {text}", tags)
+
+    def handle_ctcp(self, sender, target, payload):
+        parts = payload.split(' ', 1)
+        command = parts[0].upper()
+        if command == 'VERSION':
+            self.send_command(f'NOTICE {sender} :\x01VERSION PyeChat 1.0 (PyQt5)\x01')
+        elif command == 'PING':
+            ts = parts[1] if len(parts) > 1 else ""
+            self.send_command(f'NOTICE {sender} :\x01PING {ts}\x01')
+        elif command == 'TIME':
+            now = datetime.datetime.now().ctime()
+            self.send_command(f'NOTICE {sender} :\x01TIME {now}\x01')
+
+    def send_ping(self):
+        if self.socket.state() == QSslSocket.ConnectedState:
+            self.send_command(f'PING :{self.server}')
+
+    def send_command(self, command):
+        if self.socket.state() == QSslSocket.ConnectedState:
+            self.socket.write(f'{command}\r\n'.encode())
+
+    @pyqtSlot('QList<QSslError>')
+    def on_ssl_errors(self, errors):
+        for err in errors:
+            self.logger.warning(f"SSL Error: {err.errorString()}")
+        # Many IRC servers use self-signed certs; it's common to ignore these in IRC clients
+        self.socket.ignoreSslErrors()
 
     @pyqtSlot(QSslSocket.SocketError)
     def on_error_occurred(self, socket_error):
-        self.logger.error(f'Error occurred on the socket: {self.socket.errorString()}')
-
-    def send_command(self, command):
-        self.logger.info(f'Sending command: {command}')
-        self.socket.write(f'{command}\r\n'.encode())
-        self.logger.info(f'Sent command: {command}')
+        err = self.socket.errorString()
+        if self.socket.state() == QSslSocket.UnconnectedState:
+            self.received_message.emit("", f"*** Connection Error: {err}", {})
+        self.logger.error(f"Socket Error: {err}")

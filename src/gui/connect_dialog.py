@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QDialogButtonBox, QLabel, QApplication, QCheckBox
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QDialogButtonBox, QLabel, QApplication, QCheckBox
 
 class ConnectDialog(QDialog):
     def __init__(self, parent=None):
@@ -43,7 +43,7 @@ class ConnectDialog(QDialog):
         self.ssl_checkbox = QCheckBox(self)
         self.layout.addWidget(self.ssl_checkbox)
 
-        self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
         self.layout.addWidget(self.buttons)
