@@ -1,9 +1,17 @@
-env/
+# Python
 __pycache__/
-logs/
+*.pyc
+*.pyo
+env/
 .venv/
-settings.json
-networks.json
-*.ico
-*.png
+
+# User data (not tracked)
+data/*.json
+logs/
+
+# IDE
+.vscode/
+.idea/
+
+# Keep source code
 !src/

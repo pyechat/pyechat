@@ -2,7 +2,7 @@
 Name=PyeChat
 Comment=Modern PyQt IRC Client
 Exec=/usr/bin/env QT_AUTO_SCREEN_SCALE_FACTOR=1 /home/colby/projects/pyechat/.venv/bin/python3 /home/colby/projects/pyechat/main.py
-Icon=/home/colby/projects/pyechat/pyechat.ico
+Icon=/home/colby/projects/pyechat/assets/pyechat.png
 Terminal=false
 Type=Application
 Categories=Network;Chat;IRCClient;

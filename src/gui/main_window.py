@@ -1,476 +1,88 @@
-from PyQt5.QtWidgets import QMainWindow, QWidget, QColorDialog, QHBoxLayout, QVBoxLayout, QListWidget, QTextEdit, QLineEdit, QCheckBox, QLabel, QMenuBar, QMenu, QStatusBar, QDialog, QPushButton, QFontDialog, QFormLayout, QDialogButtonBox, QSpinBox, QAction, QTreeWidget, QTreeWidgetItem, QTabWidget, QApplication, QScrollArea, QGroupBox, QComboBox, QFrame, QSplitter, QPlainTextEdit, QTableWidget, QTableWidgetItem, QHeaderView, QInputDialog, QListWidgetItem
-from PyQt5.QtGui import QIcon, QTextCursor, QFont, QColor, QTextCharFormat, QPalette
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject
-from src.irc.irc_client import IRCClient
+"""Main window for PyeChat IRC client."""
+import os
 import json
 import datetime
-import hashlib
-import re
-import html
-import webbrowser
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, 
+                             QListWidget, QTextBrowser, QLabel, QMenu, 
+                             QTreeWidget, QTreeWidgetItem, QApplication, 
+                             QSplitter, QPlainTextEdit)
+from PyQt5.QtGui import QIcon, QTextCursor, QFont, QColor, QPalette
+from PyQt5.QtCore import Qt, QTimer
+from src.irc.irc_client import IRCClient
+from src.gui.utils.colors import get_nick_colour
+from src.gui.utils.formatters import irc_to_html
+from src.gui.dialogs.network_list import NetworkListDialogue
+from src.gui.dialogs.settings import SettingsDialogue
 
-def get_nick_colour(nick, bg_colour_hex="#ffffff"):
-    # Generates a consistent but unique colour for a nickname
-    hash_val = int(hashlib.md5(nick.encode()).hexdigest(), 16)
-    hue = hash_val % 360
-    # Determine if we should use light or dark text based on background lightness
-    qcolour = QColor(bg_colour_hex)
-    is_dark_bg = qcolour.lightness() < 128
-    lightness = 70 if is_dark_bg else 40
-    return f"hsl({hue}, 70%, {lightness}%)"
+DEFAULT_WINDOW_X = 100
+DEFAULT_WINDOW_Y = 100
+DEFAULT_WINDOW_WIDTH = 1100
+DEFAULT_WINDOW_HEIGHT = 700
 
-def irc_to_html(text):
-    # mIRC Colour Map
-    colours = {
-        "0": "#ffffff", "1": "#000000", "2": "#000080", "3": "#008000",
-        "4": "#ff0000", "5": "#800000", "6": "#800080", "7": "#ff8000",
-        "8": "#ffff00", "9": "#00ff00", "10": "#008080", "11": "#00ffff",
-        "12": "#0000ff", "13": "#ff00ff", "14": "#808080", "15": "#c0c0c0"
-    }
-    
-    # Escape existing HTML
-    text = html.escape(text)
-    
-    # Simple formatting
-    text = text.replace('\x02', '</b><b>').replace('\x1D', '</i><i>').replace('\x1F', '</u><u>')
-    text = f"<b><i><u>{text}</u></i></b>" # Wrappers for easy closing
-    
-    def colour_repl(match):
-        fg, bg = match.group(1), match.group(3)
-        res = "</span>"
-        if fg:
-            c = colours.get(fg, "#fff")
-            res += f'<span style="color:{c}'
-            if bg:
-                bc = colours.get(bg, "#000")
-                res += f';background-color:{bc}'
-            res += '">'
-        return res
+MESSAGE_BATCH_INTERVAL_MS = 100
+NETWORK_LIST_DELAY_MS = 100
+MAX_MESSAGES_PER_BATCH = 500
 
-    # \x03 followed by optional fg[,bg]
-    text = re.sub(r'\x03(\d{1,2})?(,(\d{1,2}))?', colour_repl, text)
-    # \x0F Reset
-    text = text.replace('\x0f', '</span><span style="color:inherit;background-color:inherit;font-weight:normal;font-style:normal;text-decoration:none">')
-    
-    # Clean up empty tags and restore wrappers
-    res = f'<span style="white-space: pre-wrap;">{text}</span>'
-    # URL auto-linking
-    url_pattern = r'(https?://[^\s<>"]+|www\.[^\s<>"]+)'
-    res = re.sub(url_pattern, r'<a href="\1" style="color: #3399ff;">\1</a>', res)
-    return res
+NICK_PREFIXES = ('~', '&', '@', '%', '+')
+NICK_RANK_MAP = {'~': 0, '&': 1, '@': 2, '%': 3, '+': 4}
+NICK_RANK_MODES = {'o': '@', 'v': '+', 'h': '%', 'a': '&', 'q': '~'}
 
-class NetworkListDialogue(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.parent = parent
-        self.setWindowTitle("Network List")
-        self.setMinimumSize(400, 300)
-        self.layout = QVBoxLayout(self)
-        self.networkList = QListWidget()
-        self.networks = self.load_networks()
-        for nw in self.networks: self.networkList.addItem(nw['name'])
-        self.layout.addWidget(self.networkList)
-        
-        self.skip_cb = QCheckBox("Skip Network List on startup")
-        self.skip_cb.setChecked(self.parent.settings.get("skip_network_list", False))
-        self.skip_cb.toggled.connect(self.on_skip_toggled)
-        self.layout.addWidget(self.skip_cb)
-
-        self.btn_layout = QHBoxLayout()
-        self.connectBtn = QPushButton("Connect"); self.connectBtn.clicked.connect(self.connectToNetwork)
-        self.editBtn = QPushButton("Edit"); self.editBtn.clicked.connect(self.editNetwork)
-        self.addBtn = QPushButton("Add"); self.addBtn.clicked.connect(self.addNetwork)
-        self.btn_layout.addWidget(self.connectBtn); self.btn_layout.addWidget(self.editBtn); self.btn_layout.addWidget(self.addBtn)
-        self.layout.addLayout(self.btn_layout)
-
-    def on_skip_toggled(self, checked):
-        self.parent.settings["skip_network_list"] = checked
-        self.parent.save_settings()
-
-    def load_networks(self):
-        try:
-            with open('networks.json', 'r') as f: return json.load(f)
-        except: return []
-
-    def save_networks(self):
-        try:
-            with open('networks.json', 'w') as f: json.dump(self.networks, f, indent=4)
-        except: pass
-
-    def connectToNetwork(self):
-        item = self.networkList.currentItem()
-        if item:
-            nw = next((n for n in self.networks if n['name'] == item.text()), None)
-            if nw: self.parent.initiate_connection(nw); self.accept()
-
-    def editNetwork(self):
-        item = self.networkList.currentItem()
-        if item:
-            nw = next((n for n in self.networks if n['name'] == item.text()), None)
-            if nw:
-                dlg = NetworkEditDialogue(nw, self)
-                if dlg.exec_(): self.save_networks()
-
-    def addNetwork(self):
-        new_nw = {"name": "New Network", "host": "", "port": 6667, "nick": "pyechat_user", "realname": "User", "channels": [], "use_ssl": False, "password": ""}
-        dlg = NetworkEditDialogue(new_nw, self)
-        if dlg.exec_(): self.networks.append(new_nw); self.save_networks(); self.networkList.addItem(new_nw['name'])
-
-class NetworkEditDialogue(QDialog):
-    def __init__(self, nw, parent=None):
-        super().__init__(parent)
-        self.nw = nw
-        self.setWindowTitle(f"Edit {nw['name']}")
-        self.layout = QFormLayout(self)
-        self.name = QLineEdit(nw['name'])
-        self.host = QLineEdit(nw['host'])
-        self.port = QSpinBox(); self.port.setRange(1, 65535); self.port.setValue(nw['port'])
-        self.nick = QLineEdit(nw['nick'])
-        self.realname = QLineEdit(nw['realname'])
-        self.channels = QLineEdit(", ".join(nw.get('channels', [])))
-        self.ssl = QCheckBox(); self.ssl.setChecked(nw.get('use_ssl', False))
-        self.pwd = QLineEdit(nw.get('password', "")); self.pwd.setEchoMode(QLineEdit.Password)
-        
-        self.sasl_method = QComboBox()
-        self.sasl_method.addItems(["None", "PLAIN", "EXTERNAL"])
-        self.sasl_method.setCurrentText(nw.get('sasl_method', "None"))
-        self.sasl_user = QLineEdit(nw.get('sasl_user', ""))
-        self.sasl_pass = QLineEdit(nw.get('sasl_pass', "")); self.sasl_pass.setEchoMode(QLineEdit.Password)
-        self.auto_cmds = QTextEdit("\n".join(nw.get('auto_commands', [])))
-        self.auto_cmds.setPlaceholderText("One command per line, e.g.\nPRIVMSG NickServ :IDENTIFY password")
-        self.auto_cmds.setMaximumHeight(80)
-
-        self.layout.addRow("Name:", self.name); self.layout.addRow("Host:", self.host); self.layout.addRow("Port:", self.port)
-        self.layout.addRow("Nick:", self.nick); self.layout.addRow("Real Name:", self.realname)
-        self.layout.addRow("Channels:", self.channels); self.layout.addRow("SSL:", self.ssl); self.layout.addRow("Password:", self.pwd)
-        self.layout.addRow("SASL Method:", self.sasl_method)
-        self.layout.addRow("SASL User:", self.sasl_user)
-        self.layout.addRow("SASL Pass:", self.sasl_pass)
-        self.layout.addRow("Auto-Commands:", self.auto_cmds)
-
-        self.btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel); self.btns.accepted.connect(self.accept); self.btns.rejected.connect(self.reject)
-        self.layout.addRow(self.btns)
-
-    def accept(self):
-        self.nw.update({
-            "name": self.name.text(), "host": self.host.text(), "port": self.port.value(), 
-            "nick": self.nick.text(), "realname": self.realname.text(), 
-            "channels": [c.strip() for c in self.channels.text().split(',') if c.strip()], 
-            "use_ssl": self.ssl.isChecked(), "password": self.pwd.text(),
-            "sasl_method": self.sasl_method.currentText() if self.sasl_method.currentText() != "None" else None,
-            "sasl_user": self.sasl_user.text(),
-            "sasl_pass": self.sasl_pass.text(),
-            "auto_commands": [l.strip() for l in self.auto_cmds.toPlainText().split('\n') if l.strip()]
-        })
-        super().accept()
-
-class SettingsDialogue(QDialog):
-    def __init__(self, parent, current_settings):
-        super().__init__(parent)
-        self.parent, self.settings = parent, current_settings
-        self.setWindowTitle("Settings")
-        self.setMinimumWidth(500)
-        self.layout = QVBoxLayout(self)
-        self.tabs = QTabWidget()
-        self.setup_general_tab()
-        self.setup_events_tab() # Now using a table!
-        self.setup_appearance_tab()
-        self.setup_identity_tab()
-        self.layout.addWidget(self.tabs)
-        self.btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel | QDialogButtonBox.Apply)
-        self.btns.accepted.connect(self.accept); self.btns.rejected.connect(self.reject); self.btns.button(QDialogButtonBox.Apply).clicked.connect(self.apply_live)
-        self.layout.addWidget(self.btns)
-
-    def setup_general_tab(self):
-        tab = QWidget(); layout = QFormLayout(tab)
-        self.ts = QCheckBox(); self.ts.setChecked(self.settings.get("show_timestamps", True))
-        self.ts_fmt = QLineEdit(self.settings.get("ts_format", "[%H:%M:%S]"))
-        self.events = QCheckBox(); self.events.setChecked(self.settings.get("show_events", True))
-        self.reconnect = QCheckBox(); self.reconnect.setChecked(self.settings.get("auto_reconnect", True))
-        self.nick_colour = QCheckBox(); self.nick_colour.setChecked(self.settings.get("nick_colouring", True))
-        self.highlight = QCheckBox(); self.highlight.setChecked(self.settings.get("highlight_mentions", True))
-        layout.addRow("Show Timestamps:", self.ts)
-        layout.addRow("Timestamp Format:", self.ts_fmt)
-        layout.addRow("Show Join/Part/Quit:", self.events)
-        layout.addRow("Auto Reconnect:", self.reconnect)
-        layout.addRow("Nick Colouring:", self.nick_colour)
-        layout.addRow("Highlight Mentions:", self.highlight)
-        self.conn_info = QComboBox()
-        self.conn_info.addItems(["Minimal", "Standard", "Verbose"])
-        self.conn_info.setCurrentText(self.settings.get("conn_info_level", "Standard"))
-        layout.addRow("Conn. Info Level:", self.conn_info)
-        
-        self.tabs.addTab(tab, "General")
-
-    def setup_events_tab(self):
-        tab = QWidget(); layout = QVBoxLayout(tab)
-        
-        # Legend
-        legend = QGroupBox("Placeholder Legend")
-        l_layout = QVBoxLayout(legend)
-        l_text = QLabel(
-            "<b>Placeholders:</b> {nick}, {channel}, {reason}, {mode}, {msg}, {old_nick}, {new_nick}, {kicker}<br/>"
-            "<b>Colours:</b> {white}, {black}, {blue}, {green}, {red}, {brown}, {purple}, {orange}, {yellow}, {teal}, {cyan}, {light_blue}, {pink}, {grey}, {plain}"
-        )
-        l_text.setWordWrap(True); l_text.setStyleSheet("color: #666; font-size: 11px;")
-        l_layout.addWidget(l_text); layout.addWidget(legend)
-
-        # Table
-        self.event_table = QTableWidget(0, 3)
-        self.event_table.setHorizontalHeaderLabels(["IRC Command", "Message Format", "Line Colour"])
-        self.event_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.event_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.event_table.setSelectionBehavior(QTableWidget.SelectRows)
-        
-        # Load existing
-        evs = self.settings.get("events_v2", self.get_default_events_v2())
-        for cmd, data in evs.items():
-            fmt = data if isinstance(data, str) else data.get("fmt", "")
-            clr = "" if isinstance(data, str) else data.get("colour", "")
-            self.add_table_row(cmd, fmt, clr)
-        
-        layout.addWidget(self.event_table)
-
-        btn_row = QHBoxLayout()
-        add_btn = QPushButton("Add Event"); add_btn.clicked.connect(self.add_new_event)
-        del_btn = QPushButton("Remove Selected"); del_btn.clicked.connect(self.remove_event)
-        btn_row.addWidget(add_btn); btn_row.addWidget(del_btn); btn_row.addStretch()
-        layout.addLayout(btn_row)
-        
-        self.tabs.addTab(tab, "Events")
-
-    def get_default_events_v2(self):
-        return {
-            "JOIN": {"fmt": "*** {nick} joined {channel}", "colour": "#00aa00"},
-            "PART": {"fmt": "*** {nick} left {channel}", "colour": "#aa0000"},
-            "QUIT": {"fmt": "*** {nick} quit ({reason})", "colour": "#aa0000"},
-            "KICK": {"fmt": "*** {nick} was kicked by {kicker} ({reason})", "colour": "#ff0000"},
-            "NICK": {"fmt": "*** {old_nick} is now known as {new_nick}", "colour": "#00aaaa"},
-            "MODE": {"fmt": "*** {sender} sets mode: {mode}", "colour": "#aa00aa"},
-            "NOTICE": {"fmt": "-{sender}- {msg}", "colour": "#aaaa00"},
-            "INVITE": {"fmt": "*** {sender} invited {nick} to {channel}", "colour": "#0000aa"}
-        }
-
-    def add_table_row(self, cmd, fmt, clr=""):
-        row = self.event_table.rowCount()
-        self.event_table.insertRow(row)
-        self.event_table.setItem(row, 0, QTableWidgetItem(cmd))
-        self.event_table.setItem(row, 1, QTableWidgetItem(fmt))
-        
-        color_btn = QPushButton("Default" if not clr else "")
-        if clr: color_btn.setStyleSheet(f"background-color: {clr}; border: 1px solid #555;")
-        color_btn.setProperty("colour", clr)
-        color_btn.clicked.connect(lambda: self.pick_event_colour(color_btn))
-        self.event_table.setCellWidget(row, 2, color_btn)
-
-    def pick_event_colour(self, btn):
-        current = QColor(btn.property("colour") or "#ffffff")
-        colour = QColorDialog.getColor(current, self, "Pick event colour", QColorDialog.DontUseNativeDialog)
-        if colour.isValid():
-            c = colour.name()
-            btn.setStyleSheet(f"background-color: {c}; border: 1px solid #555;")
-            btn.setProperty("colour", c)
-            btn.setText("")
-
-    def add_new_event(self):
-        cmd, ok = QInputDialog.getText(self, "Add Event", "IRC Command (e.g., TOPIC, 372):")
-        if ok and cmd: self.add_table_row(cmd.upper(), "", "")
-
-    def remove_event(self):
-        self.event_table.removeRow(self.event_table.currentRow())
-
-    def setup_appearance_tab(self):
-        tab = QWidget()
-        main_layout = QHBoxLayout(tab)
-        
-        # Left side: Scrollable Options
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setMaximumWidth(280)
-        container = QWidget()
-        layout = QFormLayout(container)
-        
-        # Theme Presets
-        self.preset_combo = QComboBox()
-        self.preset_combo.addItems(["Custom", "Dracula", "Nord", "Solarized Dark", "Matrix", "Soft Light", "Oceanic"])
-        self.preset_combo.currentTextChanged.connect(self.on_preset_change)
-        layout.addRow("Theme Preset:", self.preset_combo)
-        layout.addRow(QLabel(" "))
-
-        # Granular Colours
-        self.add_colour_option(layout, "Chat Background", "bg_colour")
-        self.add_colour_option(layout, "Chat Text", "fg_colour")
-        self.add_colour_option(layout, "Timestamp Colour", "ts_colour")
-        self.add_colour_option(layout, "Mention Background", "hl_bg")
-        self.add_colour_option(layout, "Mention Border", "hl_border")
-        layout.addRow(QLabel(" "))
-        self.add_colour_option(layout, "Sidebar Background", "sidebar_bg")
-        self.add_colour_option(layout, "Sidebar Text", "sidebar_fg")
-        layout.addRow(QLabel(" "))
-        self.add_colour_option(layout, "Topic Background", "topic_bg")
-        self.add_colour_option(layout, "Topic Text", "topic_fg")
-        layout.addRow(QLabel(" "))
-        self.add_colour_option(layout, "Input Background", "input_bg")
-        self.add_colour_option(layout, "Input Text", "input_fg")
-
-        self.font_btn = QPushButton("Change Chat Font")
-        self.font_btn.clicked.connect(self.on_change_font)
-        layout.addRow("Font:", self.font_btn)
-
-        scroll.setWidget(container)
-        main_layout.addWidget(scroll)
-
-        # Right side: Live Preview
-        preview_group = QGroupBox("Live Theme Preview")
-        preview_layout = QVBoxLayout(preview_group)
-        self.preview_chat = QTextEdit()
-        self.preview_chat.setReadOnly(True)
-        self.preview_chat.setHtml(self.get_preview_html())
-        preview_layout.addWidget(self.preview_chat)
-        main_layout.addWidget(preview_group)
-
-        self.tabs.addTab(tab, "Appearance")
-
-    def get_preview_html(self):
-        # Generates a sample chat view for the preview window
-        ts_colour = self.settings.get("ts_colour", "#888")
-        bg_colour = self.settings.get("bg_colour", "#1e1e1e")
-        fg_colour = self.settings.get("fg_colour", "#ffffff")
-        hl_bg = self.settings.get("hl_bg", "rgba(255, 204, 0, 0.1)")
-        hl_border = self.settings.get("hl_border", "#ffcc00")
-        
-        c1 = get_nick_colour("Alice", bg_colour)
-        c2 = get_nick_colour("Bob", bg_colour)
-        
-        html = f"<div style='background-color: {bg_colour}; color: {fg_colour}; padding: 10px;'>"
-        html += f"<div><span style='color:{ts_colour}'>[12:00:00] </span><span style='color:{c1}'>&lt;Alice&gt;</span> Hello!</div>"
-        html += f"<div><span style='color:{ts_colour}'>[12:00:05] </span><span style='color:{c2}'>&lt;Bob&gt;</span> How do these colours look?</div>"
-        html += f"<div style='background-color: {hl_bg}; border-left: 3px solid {hl_border}; padding-left: 5px;'>"
-        my_nick = self.settings.get("default_nick", "User")
-        html += f"<span style='color:{ts_colour}'>[12:00:10] </span><span style='color:{c1}'>&lt;Alice&gt;</span> {my_nick}, check this highlight!</div>"
-        html += "</div>"
-        return html
-
-    def add_colour_option(self, layout, label, key):
-        btn = QPushButton(label)
-        btn.clicked.connect(lambda: self.pick_colour(key, btn))
-        self.update_button_swatch(btn, key)
-        layout.addRow(btn)
-
-    def update_button_swatch(self, btn, key):
-        colour = self.settings.get(key, "#ffffff")
-        qcolour = QColor(colour if not colour.startswith("rgba") else "transparent")
-        fg = "#fff" if qcolour.lightness() < 128 else "#000"
-        btn.setStyleSheet(f"background-color: {colour}; color: {fg}; border: 1px solid #555; height: 24px; font-weight: bold;")
-        if hasattr(self, 'preview_chat'):
-            self.preview_chat.setHtml(self.get_preview_html())
-
-    def pick_colour(self, key, btn):
-        current = QColor(self.settings.get(key, "#ffffff"))
-        # Force the draggable colour map (Non-native Dialogue)
-        colour = QColorDialog.getColor(current, self, "Pick an exact colour", QColorDialog.DontUseNativeDialog)
-        if colour.isValid():
-            self.settings[key] = colour.name()
-            self.update_button_swatch(btn, key)
-            self.preset_combo.setCurrentText("Custom")
-
-    def on_preset_change(self, name):
-        presets = {
-            "Dracula": {"bg_colour": "#282a36", "fg_colour": "#f8f8f2", "ts_colour": "#6272a4", "sidebar_bg": "#21222c", "sidebar_fg": "#f8f8f2", "topic_bg": "#44475a", "topic_fg": "#bd93f9", "input_bg": "#282a36", "input_fg": "#f8f8f2", "hl_bg": "rgba(255, 121, 198, 0.1)", "hl_border": "#ff79c6"},
-            "Nord": {"bg_colour": "#2e3440", "fg_colour": "#eceff4", "ts_colour": "#4c566a", "sidebar_bg": "#242933", "sidebar_fg": "#d8dee9", "topic_bg": "#3b4252", "topic_fg": "#88c0d0", "input_bg": "#3b4252", "input_fg": "#eceff4", "hl_bg": "rgba(136, 192, 208, 0.1)", "hl_border": "#88c0d0"},
-            "Solarized Dark": {"bg_colour": "#002b36", "fg_colour": "#839496", "ts_colour": "#586e75", "sidebar_bg": "#073642", "sidebar_fg": "#93a1a1", "topic_bg": "#073642", "topic_fg": "#211a76", "input_bg": "#002b36", "input_fg": "#839496", "hl_bg": "rgba(181, 137, 0, 0.1)", "hl_border": "#b58900"},
-            "Matrix": {"bg_colour": "#000000", "fg_colour": "#00ff00", "ts_colour": "#008800", "sidebar_bg": "#000000", "sidebar_fg": "#00ff00", "topic_bg": "#001100", "topic_fg": "#00ff00", "input_bg": "#000000", "input_fg": "#00ff00", "hl_bg": "rgba(0, 255, 0, 0.1)", "hl_border": "#00ff00"}
-        }
-        if name in presets:
-            self.settings.update(presets[name])
-            # Update all buttons
-            for i in range(self.tabs.count()):
-                scroll = self.tabs.widget(i).findChild(QScrollArea)
-                if scroll:
-                    container = scroll.widget()
-                    for btn in container.findChildren(QPushButton):
-                        # Find key corresponding to btn text
-                        # This is a bit hacky, normally we'd store refs
-                        pass
-            self.preview_chat.setHtml(self.get_preview_html())
-            # For now just reload the tab view by redrawing buttons (easier to just accept preset)
-            # Actually, let's just update the dict and let user see preview
-
-    def on_change_font(self):
-        font, ok = QFontDialog.getFont(self.parent.chat.font(), self)
-        if ok: self.settings["font"] = font.toString()
-
-    def setup_identity_tab(self):
-        tab = QWidget()
-        layout = QFormLayout(tab)
-        self.default_nick = QLineEdit(self.settings.get("default_nick", "pyechat_user"))
-        self.real_name = QLineEdit(self.settings.get("real_name", "PyeChat User"))
-        layout.addRow("Default Nick:", self.default_nick)
-        layout.addRow("Real Name:", self.real_name)
-        self.tabs.addTab(tab, "Identity")
-
-    def apply_live(self):
-        self.update_dict(); self.parent.apply_theme()
-
-    def update_dict(self):
-        # We don't need to update colour settings here as they are updated directly in pick_colour
-        self.settings.update({
-            "show_timestamps": self.ts.isChecked(),
-            "ts_format": self.ts_fmt.text(),
-            "show_events": self.events.isChecked(),
-            "auto_reconnect": self.reconnect.isChecked(),
-            "nick_colouring": self.nick_colour.isChecked(),
-            "highlight_mentions": self.highlight.isChecked(),
-            "conn_info_level": self.conn_info.currentText(),
-            "events_v2": self.get_table_data_v2(),
-            "default_nick": self.default_nick.text(),
-            "real_name": self.real_name.text()
-        })
-
-    def accept(self):
-        self.update_dict(); super().accept()
-
-    def get_table_data_v2(self):
-        data = {}
-        for r in range(self.event_table.rowCount()):
-            it_cmd = self.event_table.item(r, 0)
-            it_fmt = self.event_table.item(r, 1)
-            btn_clr = self.event_table.cellWidget(r, 2)
-            if it_cmd and it_fmt and btn_clr:
-                c, f = it_cmd.text().strip().upper(), it_fmt.text().strip()
-                clr = btn_clr.property("colour")
-                if c: data[c] = {"fmt": f, "colour": clr}
-        return data
+INPUT_MIN_HEIGHT = 30
+INPUT_MAX_HEIGHT = 85
+INPUT_PADDING = 12
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.clients, self.buffers, self.current_nw, self.current_target = {}, {}, None, ""
-        self.load_settings()
-        self.setObjectName("PyeChat"); self.setWindowTitle("PyeChat")
-        self.setWindowIcon(QIcon('/home/colby/projects/pyechat/pyechat.ico'))
-        self.setGeometry(100, 100, 1100, 700)
-        self.central = QWidget(); self.setCentralWidget(self.central); self.layout = QHBoxLayout(self.central)
-        self.layout.setContentsMargins(0, 0, 0, 0); self.layout.setSpacing(0)
-        self.setup_ui(); self.setup_menu(); self.apply_theme()
+        self.current_nw = None
+        self.current_target = ""
+        self.tree_items = {}
+        self.clients = {}
+        self.buffers = {}
         
-        # Spam Fortress: Batch Update Timers
+        self.load_settings()
+        
+        self.setObjectName("PyeChat")
+        self.setWindowTitle("PyeChat")
+        
+        icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'pyechat.png'))
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+        
+        self.setGeometry(DEFAULT_WINDOW_X, DEFAULT_WINDOW_Y, 
+                        DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)
+        
+        self.central = QWidget()
+        self.setCentralWidget(self.central)
+        self.layout = QHBoxLayout(self.central)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+        
+        self.setup_ui()
+        self.setup_menu()
+        self.apply_theme()
+        
         self.nick_update_queued = set()
-        self.nick_timer = QTimer(); self.nick_timer.setSingleShot(True)
+        self.nick_timer = QTimer()
+        self.nick_timer.setSingleShot(True)
         self.nick_timer.timeout.connect(self.flush_nicks)
         
         self.msg_queue = []
-        self.msg_timer = QTimer(); self.msg_timer.setInterval(100)
+        self.msg_timer = QTimer()
+        self.msg_timer.setInterval(MESSAGE_BATCH_INTERVAL_MS)
         self.msg_timer.timeout.connect(self.flush_messages)
         self.msg_timer.start()
 
         if not self.settings.get("skip_network_list", False):
-            QTimer.singleShot(100, self.openNetworkListDialogue)
+            QTimer.singleShot(NETWORK_LIST_DELAY_MS, self.openNetworkListDialogue)
 
     def load_settings(self):
+        settings_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'settings.json'))
         try:
-            with open('settings.json', 'r') as f: self.settings = json.load(f)
-        except:
+            with open(settings_path, 'r') as f: self.settings = json.load(f)
+            for k, v in self.settings.items():
+                if v == "#3584E4" or v == "#3584e4": self.settings[k] = "#E95420"
+        except (FileNotFoundError, json.JSONDecodeError):
             self.settings = {
                 "show_timestamps": True,
                 "ts_format": "[%H:%M:%S]",
@@ -478,17 +90,41 @@ class MainWindow(QMainWindow):
                 "auto_reconnect": True,
                 "nick_colouring": True,
                 "highlight_mentions": True,
+                "use_system_theme": True,  # Default to system theme - respect OS!
+                # Chat Area
                 "bg_colour": "#ffffff",
                 "fg_colour": "#000000",
                 "ts_colour": "#888888",
-                "sidebar_bg": "#f3f3f3",
-                "sidebar_fg": "#000000",
-                "topic_bg": "#e8e8e8",
-                "topic_fg": "#000000",
-                "input_bg": "#ffffff",
-                "input_fg": "#000000",
                 "hl_bg": "rgba(255, 204, 0, 0.2)",
                 "hl_border": "#ffcc00",
+                # Tree/Network List
+                "tree_bg": "#f3f3f3",
+                "tree_fg": "#000000",
+                "tree_sel_bg": "#E95420",
+                "tree_sel_fg": "#ffffff",
+                # Nick List
+                "nick_bg": "#f3f3f3",
+                "nick_fg": "#000000",
+                "nick_sel_bg": "#E95420",
+                "nick_sel_fg": "#ffffff",
+                # Topic Bar
+                "topic_bg": "#e8e8e8",
+                "topic_fg": "#000000",
+                "topic_border": "#cccccc",
+                # Input Box
+                "input_bg": "#ffffff",
+                "input_fg": "#000000",
+                "input_border": "#cccccc",
+                # Menu & Status
+                "menu_bg": "#ffffff",
+                "menu_fg": "#000000",
+                "menu_hover_bg": "#E95420",
+                "status_bg": "#f3f3f3",
+                "status_fg": "#000000",
+                # Borders & Scrollbars
+                "border_colour": "#cccccc",
+                "scrollbar_bg": "#f3f3f3",
+                "scrollbar_handle": "#999999",
                 "default_nick": "pyechat_user",
                 "real_name": "PyeChat User",
                 "skip_network_list": False,
@@ -501,35 +137,107 @@ class MainWindow(QMainWindow):
                     "NICK": {"fmt": "*** {old_nick} is now known as {new_nick}", "colour": "#00aaaa"},
                     "MODE": {"fmt": "*** {sender} sets mode: {mode}", "colour": "#aa00aa"},
                     "NOTICE": {"fmt": "-{sender}- {msg}", "colour": "#aaaa00"},
-                    "INVITE": {"fmt": "*** {sender} invited {nick} to {channel}", "colour": "#0000aa"}
+                    "INVITE": {"fmt": "*** {sender} invited {nick} to {channel}", "colour": "#0000aa"},
+                    "ACTION": {"fmt": "* {sender} {msg}", "colour": "#00aa00"}
                 }
             }
 
     def save_settings(self):
-        with open('settings.json', 'w') as f: json.dump(self.settings, f)
+        settings_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'settings.json'))
+        try:
+            os.makedirs(os.path.dirname(settings_path), exist_ok=True)
+            with open(settings_path, 'w') as f:
+                json.dump(self.settings, f, indent=2)
+        except (IOError, OSError) as e:
+            print(f"Warning: Failed to save settings: {e}")
 
     def apply_theme(self):
         s = self.settings
-        bg, fg = s.get("bg_colour", "#1e1e1e"), s.get("fg_colour", "#ffffff")
-        s_bg, s_fg = s.get("sidebar_bg", "#252526"), s.get("sidebar_fg", "#cccccc")
-        t_bg, t_fg = s.get("topic_bg", "#333333"), s.get("topic_fg", "#ffffff")
-        i_bg, i_fg = s.get("input_bg", "#3c3c3c"), s.get("input_fg", "#ffffff")
+        if s.get("use_system_theme", True):
+            app = QApplication.instance()
+            if app:
+                palette = app.style().standardPalette()
+                from PyQt5.QtGui import QPalette, QColor
+                palette.setColor(QPalette.Highlight, QColor("#E95420"))
+                palette.setColor(QPalette.HighlightedText, QColor("#ffffff"))
+                app.setPalette(palette)
+            
+            self.setStyleSheet("""
+                QTreeWidget { border: none; outline: none; }
+                QTreeWidget::item { padding: 2px; }
+                QPlainTextEdit {
+                    border: 1px solid #cccccc;
+                    border-radius: 3px;
+                    padding: 3px;
+                }
+                QPlainTextEdit:focus {
+                    border: 2px solid #E95420;
+                    padding: 2px;
+                }
+            """)
+            
+            if "font" in self.settings:
+                f = QFont()
+                f.fromString(self.settings["font"])
+                self.chat.setFont(f)
+            return
         
-        style = f"QMainWindow, QDialog {{ background-color: {bg}; color: {fg}; }}" \
-                f"QMenuBar {{ background-color: {bg}; color: {fg}; border-bottom: 1px solid #ccc; }}" \
-                f"QMenuBar::item {{ background-color: transparent; padding: 4px 10px; margin: 0; }}" \
-                f"QMenuBar::item:selected {{ background-color: #3584e4; color: white; }}" \
-                f"QMenu {{ background-color: {bg}; color: {fg}; border: 1px solid #999; padding: 2px; }}" \
-                f"QMenu::item {{ padding: 3px 28px 3px 6px; border: 1px solid transparent; }}" \
-                f"QMenu::item:selected {{ background-color: #3584e4; color: white; }}" \
-                f"QMenu::separator {{ height: 1px; background: #ccc; margin: 4px 2px; }}" \
-                f"QPlainTextEdit {{ background-color: {i_bg}; color: {i_fg}; border: 1px solid #ccc; border-radius: 4px; padding: 2px; font-size: 14px; }}" \
-                f"QTreeWidget, QListWidget {{ background-color: {s_bg}; color: {s_fg}; border: none; }}" \
-                f"QLabel#topic {{ background-color: white; color: black; padding: 4px; border: 1px solid #ccc; font-weight: normal; margin-bottom: 2px; }}" \
-                f"QSplitter::handle {{ background-color: #ccc; width: 1px; }}" \
-                f"QStatusBar {{ background-color: {bg}; color: {fg}; border-top: 1px solid #ccc; }}" \
-                f"QScrollBar:vertical {{ background: {s_bg}; width: 12px; }}" \
-                f"QScrollBar::handle:vertical {{ background: #ccc; border-radius: 6px; min-height: 20px; }}"
+        self.input.setStyleSheet("")
+        
+        bg = s.get("bg_colour", "#1e1e1e")
+        fg = s.get("fg_colour", "#ffffff")
+        
+        tree_bg = s.get("tree_bg", s.get("sidebar_bg", "#252526"))
+        tree_fg = s.get("tree_fg", s.get("sidebar_fg", "#cccccc"))
+        tree_sel_bg = s.get("tree_sel_bg", "#E95420")
+        tree_sel_fg = s.get("tree_sel_fg", "#ffffff")
+        
+        nick_bg = s.get("nick_bg", s.get("sidebar_bg", "#252526"))
+        nick_fg = s.get("nick_fg", s.get("sidebar_fg", "#cccccc"))
+        nick_sel_bg = s.get("nick_sel_bg", "#E95420")
+        nick_sel_fg = s.get("nick_sel_fg", "#ffffff")
+        
+        t_bg = s.get("topic_bg", "#333333")
+        t_fg = s.get("topic_fg", "#ffffff")
+        t_border = s.get("topic_border", "#cccccc")
+        
+        i_bg = s.get("input_bg", "#3c3c3c")
+        i_fg = s.get("input_fg", "#ffffff")
+        i_border = s.get("input_border", "#cccccc")
+        
+        menu_bg = s.get("menu_bg", bg)
+        menu_fg = s.get("menu_fg", fg)
+        menu_hover = s.get("menu_hover_bg", "#E95420")
+        
+        status_bg = s.get("status_bg", bg)
+        status_fg = s.get("status_fg", fg)
+        
+        border = s.get("border_colour", "#cccccc")
+        scroll_bg = s.get("scrollbar_bg", tree_bg)
+        scroll_handle = s.get("scrollbar_handle", "#999999")
+        
+        style = f"""QMainWindow, QDialog {{ background-color: {bg}; color: {fg}; }}
+                QMenuBar {{ background-color: {menu_bg}; color: {menu_fg}; border-bottom: 1px solid {border}; }}
+                QMenuBar::item {{ background-color: transparent; padding: 4px 10px; margin: 0; }}
+                QMenuBar::item:selected {{ background-color: {menu_hover}; color: white; }}
+                QMenu {{ background-color: {menu_bg}; color: {menu_fg}; border: 1px solid {border}; padding: 2px; }}
+                QMenu::item {{ padding: 3px 28px 3px 6px; border: 1px solid transparent; }}
+                QMenu::item:selected {{ background-color: {menu_hover}; color: white; }}
+                QMenu::separator {{ height: 1px; background: {border}; margin: 4px 2px; }}
+                QPlainTextEdit {{ background-color: {i_bg}; color: {i_fg}; border: 1px solid {i_border}; border-radius: 4px; padding: 2px; font-size: 14px; }}
+                QTreeWidget { background-color: {tree_bg}; color: {tree_fg}; border: none; outline: none; }
+                QTreeWidget::item { padding: 2px; }
+                QTreeWidget::item:selected { background-color: {tree_sel_bg}; color: {tree_sel_fg}; }
+                QTreeWidget::branch { width: 12px; }
+                QListWidget {{ background-color: {nick_bg}; color: {nick_fg}; border: none; }}
+                QListWidget::item:selected {{ background-color: {nick_sel_bg}; color: {nick_sel_fg}; }}
+                QLabel#topic {{ background-color: {t_bg}; color: {t_fg}; padding: 4px; border: 1px solid {t_border}; font-weight: normal; margin-bottom: 2px; }}
+                QSplitter::handle {{ background-color: {border}; width: 1px; }}
+                QStatusBar {{ background-color: {status_bg}; color: {status_fg}; border-top: 1px solid {border}; }}
+                QScrollBar:vertical {{ background: {scroll_bg}; width: 12px; }}
+                QScrollBar::handle:vertical {{ background: {scroll_handle}; border-radius: 6px; min-height: 20px; }}
+                QScrollBar:horizontal {{ background: {scroll_bg}; height: 12px; }}
+                QScrollBar::handle:horizontal {{ background: {scroll_handle}; border-radius: 6px; min-width: 20px; }}"""
         
         self.setStyleSheet(style)
         self.topic.setObjectName("topic")
@@ -543,21 +251,23 @@ class MainWindow(QMainWindow):
         palette.setColor(QPalette.ButtonText, QColor(i_fg))
         self.setPalette(palette)
         if "font" in self.settings:
-            f = QFont(); f.fromString(self.settings["font"]); self.chat.setFont(f)
+            f = QFont()
+            f.fromString(self.settings["font"])
+            self.chat.setFont(f)
 
     def setup_ui(self):
-        # 1. Splitter for resizable panes
         self.splitter = QSplitter(Qt.Horizontal)
         self.splitter.setChildrenCollapsible(False)
         
-        # Sidebar
         self.tree = QTreeWidget()
+        self.tree.setObjectName("channel_tree")
         self.tree.setHeaderHidden(True)
         self.tree.setFixedWidth(200)
         self.tree.itemClicked.connect(self.on_tree_click)
+        self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self.on_tree_context_menu)
         self.splitter.addWidget(self.tree)
 
-        # Mid Section (Topic, Chat, Input)
         self.mid_container = QWidget()
         self.mid_layout = QVBoxLayout(self.mid_container)
         self.mid_layout.setContentsMargins(0, 0, 0, 0)
@@ -565,10 +275,12 @@ class MainWindow(QMainWindow):
         
         self.topic = QLabel("")
         self.topic.setObjectName("topic")
-        self.chat = QTextEdit()
+        self.chat = QTextBrowser()
         self.chat.setReadOnly(True)
+        self.chat.setOpenExternalLinks(True)
         
         self.input = QPlainTextEdit()
+        self.input.setObjectName("chat_input")
         self.input.setPlaceholderText("Message...")
         self.input.setFixedHeight(30)
         self.input.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -584,8 +296,8 @@ class MainWindow(QMainWindow):
         self.mid_layout.addLayout(self.input_layout)
         self.splitter.addWidget(self.mid_container)
 
-        # Nicklist
         self.nicks = QListWidget()
+        self.nicks.setObjectName("nick_list")
         self.nicks.setFixedWidth(160)
         self.nicks.setContextMenuPolicy(Qt.CustomContextMenu)
         self.nicks.customContextMenuRequested.connect(self.on_nick_context_menu)
@@ -606,42 +318,96 @@ class MainWindow(QMainWindow):
         return super().eventFilter(obj, event)
 
     def adjust_input_height(self):
-        # Calculate height based on line count and font metrics
         doc = self.input.document()
         layout = doc.documentLayout()
-        
-        # This force-refreshes the layout to get the correct height for wrapped text
         doc.setTextWidth(self.input.viewport().width())
-        h = doc.size().height() + 12 # 12px for top/bottom padding
+        h = doc.size().height() + INPUT_PADDING
+        self.input.setFixedHeight(int(min(max(h, INPUT_MIN_HEIGHT), INPUT_MAX_HEIGHT)))
         
-        limit = 85 # Approx 4 lines
-        self.input.setFixedHeight(int(min(max(h, 30), limit)))
-        
-        # Show scrollbar only if we've hit the limit
-        if h > limit:
+        if h > INPUT_MAX_HEIGHT:
             self.input.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         else:
             self.input.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
     def do_tab_completion(self):
-        text = self.input.toPlainText()
-        if not text: return
-        parts = text.split()
-        if not parts: return
-        last_word = parts[-1].lower()
-        candidates = []
-        if self.current_nw and self.current_target:
-            candidates = [n for n in self.buffers[(self.current_nw, self.current_target)]["nicks"] if n.lower().startswith(last_word)]
-        if not candidates: return
-        # Simple completion: just pick the first one
-        completed = candidates[0]
-        if len(parts) == 1: completed += ": "
-        else: completed += " "
-        parts[-1] = completed
-        self.input.setPlainText(" ".join(parts))
-        # Move cursor to end
         cursor = self.input.textCursor()
-        cursor.movePosition(QTextCursor.End)
+        pos = cursor.position()
+        text = self.input.toPlainText()
+        
+        if pos == 0: return
+        
+        # 1. Check if we're already cycling through candidates
+        if hasattr(self, '_tab_state') and self._tab_state['text'] == text and self._tab_state['pos'] == pos:
+            state = self._tab_state
+            idx = (state['idx'] + 1) % len(state['candidates'])
+            state['idx'] = idx
+            
+            cursor.movePosition(QTextCursor.Left, QTextCursor.KeepAnchor, state['len'])
+            new_val = state['candidates'][idx]
+            
+            comp_suffix = self.settings.get("completion_suffix", ":")
+            suffix = (comp_suffix + " ") if state['start'] == 0 else " "
+            if not comp_suffix and state['start'] == 0: suffix = " "
+            
+            cursor.insertText(new_val + suffix)
+            
+            state['text'] = self.input.toPlainText()
+            state['pos'] = cursor.position()
+            state['len'] = len(new_val + suffix)
+            self.input.setTextCursor(cursor)
+            return
+
+        start = pos
+        while start > 0 and not text[start-1].isspace():
+            start -= 1
+        
+        word = text[start:pos]
+        if not word: return
+        word_lower = word.lower()
+        
+        candidates = []
+        seen = set()
+        prefix_chars = ''.join(NICK_PREFIXES) + ' '
+        
+        if self.current_nw and self.current_target:
+            buf = self.buffers.get((self.current_nw, self.current_target))
+            if buf:
+                for n in buf.get("nicks", []):
+                    raw = n.lstrip(prefix_chars)
+                    raw_l = raw.lower()
+                    if raw_l.startswith(word_lower) and raw_l not in seen:
+                        candidates.append(raw)
+                        seen.add(raw_l)
+        
+        if self.current_nw:
+            nw_it = self.find_item(self.current_nw, "")
+            if nw_it:
+                for i in range(nw_it.childCount()):
+                    chan = nw_it.child(i).text(0)
+                    chan_l = chan.lower()
+                    if chan_l.startswith(word_lower) and chan_l not in seen:
+                        candidates.append(chan)
+                        seen.add(chan_l)
+                        
+        if not candidates: return
+        candidates.sort(key=lambda x: x.lower())
+        
+        completed = candidates[0]
+        comp_suffix = self.settings.get("completion_suffix", ":")
+        suffix = (comp_suffix + " ") if start == 0 else " "
+        if not comp_suffix and start == 0: suffix = " "
+        
+        cursor.setPosition(start, QTextCursor.KeepAnchor)
+        cursor.insertText(completed + suffix)
+        
+        self._tab_state = {
+            'text': self.input.toPlainText(),
+            'pos': cursor.position(),
+            'candidates': candidates,
+            'idx': 0,
+            'start': start,
+            'len': len(completed + suffix)
+        }
         self.input.setTextCursor(cursor)
 
     def on_nick_context_menu(self, pos):
@@ -667,7 +433,13 @@ class MainWindow(QMainWindow):
     def initiate_connection(self, nw):
         name = nw['name']
         if name in self.clients: return
-        item = QTreeWidgetItem(self.tree); item.setText(0, name); item.setExpanded(True); self.tree.addTopLevelItem(item)
+        
+        it = QTreeWidgetItem(self.tree)
+        it.setText(0, name)
+        it.setExpanded(True)
+        it.setFont(0, QFont("", -1, QFont.Bold))
+        self.tree_items[(name, "")] = it
+        
         self.setup_buffer(name, "")
         client = IRCClient(
             name, nw['host'], nw['port'], nw['nick'], nw['realname'], 
@@ -677,85 +449,196 @@ class MainWindow(QMainWindow):
             nw.get('auto_commands', [])
         )
         self.clients[name] = client
-        client.received_message.connect(lambda t, m, tags: self.on_message(name, t, m, tags))
-        client.received_nick_list.connect(lambda d: self.on_nick(name, d))
-        client.received_topic.connect(lambda c, t: self.on_topic(name, c, t))
-        client.parted_channel.connect(lambda c, n: self.on_part(name, c, n))
-        client.nick_changed.connect(lambda o, n: self.on_nick_change(name, o, n))
-        client.received_kick.connect(lambda c, t, k, r: self.on_kick(name, c, t, k, r))
-        client.received_mode.connect(lambda c, s, m: self.on_mode(name, c, s, m))
-        client.received_invite.connect(lambda c, s, n: self.on_invite(name, c, s, n))
-        client.event_received.connect(lambda c, s, a, t: self.on_event_received(name, c, s, a, t))
-        client.disconnected_from_server.connect(self.on_disconnect)
-        self.switch_buffer(name, ""); client.connect_to_host()
+        client.received_message.connect(lambda t, m, tags, n=name: self.on_message(n, t, m, tags))
+        client.received_nick_list.connect(lambda d, n=name: self.on_nick(n, d))
+        client.received_topic.connect(lambda c, t, n=name: self.on_topic(n, c, t))
+        client.parted_channel.connect(lambda c, ni, n=name: self.on_part(n, c, ni))
+        client.nick_changed.connect(lambda o, ni, n=name: self.on_nick_change(n, o, ni))
+        client.received_kick.connect(lambda c, t, k, r, n=name: self.on_kick(n, c, t, k, r))
+        client.received_mode.connect(lambda c, s, m, n=name: self.on_mode(n, c, s, m))
+        client.received_invite.connect(lambda c, s, ni, n=name: self.on_invite(n, c, s, ni))
+        client.received_action.connect(lambda t, s, m, n=name: self.on_action(n, t, s, m))
+        client.received_quit.connect(lambda ni, r, n=name: self.on_quit(n, ni, r))
+        client.event_received.connect(lambda c, s, a, t, n=name: self.on_event_received(n, c, s, a, t))
+        client.disconnected_from_server.connect(lambda n=name: self.on_disconnect(n))
+        self.switch_buffer(name, "")
+        client.connect_to_host()
 
     def setup_buffer(self, nw, target):
         if (nw, target) not in self.buffers: 
-            self.buffers[(nw, target)] = {"messages": [], "nicks": [], "topic": ""}
+            self.buffers[(nw, target)] = {
+                "messages": [], "nicks": [], "topic": "",
+                "activity": False, "highlight": False
+            }
 
     def switch_buffer(self, nw, target):
+        if self.current_nw == nw and self.current_target == target:
+            return
+        
         self.current_nw, self.current_target = nw, target
         self.setup_buffer(nw, target)
         buf = self.buffers[(nw, target)]
         
-        self.chat.clear()
-        # Render batch for performance
-        self.chat.setHtml("".join(buf["messages"]))
-        self.chat.moveCursor(QTextCursor.End)
+        # Reset activity highlights
+        buf["activity"] = buf["highlight"] = False
+        it = self.find_item(nw, target)
+        if it:
+            it.setForeground(0, QPalette().color(QPalette.WindowText))
+            font = it.font(0)
+            if not target: font.setBold(True) # Keep networks bold
+            else: font.setBold(False)
+            it.setFont(0, font)
+
+        try:
+            self.chat.setUpdatesEnabled(False)
+            self.chat.clear()
+            if buf["messages"]:
+                self.chat.setHtml("".join(buf["messages"]))
+                self.chat.moveCursor(QTextCursor.End)
+        finally:
+            self.chat.setUpdatesEnabled(True)
+            self.chat.viewport().update()
         
-        self.topic.setText(buf["topic"] or target)
+        # Update UI elements
+        topic_text = buf["topic"] or target
+        if buf["nicks"]:
+            topic_text = f"({len(buf['nicks'])}) {topic_text}"
+        self.topic.setText(topic_text)
         self.render_nick_list()
+        
+        # Status Bar Info
+        msg = f"<b>NW:</b> {nw}"
+        if nw in self.clients:
+            msg += f" | <b>Nick:</b> {self.clients[nw].nickname}"
+        if target:
+            msg += f" | <b>Buf:</b> {target}"
+        
+        from PyQt5.QtWidgets import QLabel
+        if not hasattr(self, 'status_label'):
+            self.status_label = QLabel()
+            self.statusBar().addWidget(self.status_label)
+        self.status_label.setText(msg)
 
     def on_tree_click(self, item, col):
         p = item.parent()
         if p: self.switch_buffer(p.text(0), item.text(0))
         else: self.switch_buffer(item.text(0), "")
+        self.input.setFocus()
 
     def on_event_received(self, nw, command, sender, args, tags):
-        # The heart of the dynamic event system!
         events = self.settings.get("events_v2", {})
         if command not in events: return
         data = events[command]
         fmt = data["fmt"] if isinstance(data, dict) else data
-        clr = data.get("colour", "") if isinstance(data, dict) else ""
+        clr_hex = data.get("colour", "") if isinstance(data, dict) else ""
         if not fmt: return
         
-        # Build context for formatting
+        if command == "MODE":
+            mode_str = " ".join(args[1:]) if len(args) > 1 else ""
+            chan = args[0] if len(args) > 0 else ""
+            
+            # Intelligent MODE parsing
+            parts = mode_str.split()
+            if parts:
+                flags = parts[0]
+                m_args = parts[1:]
+                arg_idx = 0
+                parsed_modes = []
+                action = "+"
+                
+                for char in flags:
+                    if char in "+-":
+                        action = char
+                        continue
+                    
+                    plus_clr = "\x0303" # Green
+                    minus_clr = "\x0304" # Red
+                    clr = plus_clr if action == "+" else minus_clr
+                    
+                    if char in NICK_RANK_MODES and arg_idx < len(m_args):
+                        target = m_args[arg_idx]
+                        arg_idx += 1
+                        desc = ""
+                        if char == "o": desc = "ops"
+                        elif char == "v": desc = "voice"
+                        elif char == "h": desc = "half-ops"
+                        elif char == "a": desc = "admin"
+                        elif char == "q": desc = "owner"
+                        
+                        verb = "gives" if action == "+" else "removes"
+                        prep = "to" if action == "+" else "from"
+                        parsed_modes.append(f"{verb} {clr}{desc}\x0f {prep} {target}")
+                    elif char in "beIkl": # Modes with args
+                        if arg_idx < len(m_args):
+                            parsed_modes.append(f"sets mode: {clr}{action}{char}\x0f {m_args[arg_idx]}")
+                            arg_idx += 1
+                        else:
+                            parsed_modes.append(f"sets mode: {clr}{action}{char}\x0f")
+                    else:
+                        parsed_modes.append(f"sets mode: {clr}{action}{char}\x0f")
+                
+                if parsed_modes:
+                    # If it's just one mode, we can show it nicely
+                    if len(parsed_modes) == 1:
+                        msg = f"*** {sender} {parsed_modes[0]}"
+                    else:
+                        msg = f"*** {sender} sets modes: {', '.join(parsed_modes)}"
+                    
+                    # Ensure color code from settings is passed through tags
+                    tags["fmt_color"] = clr_hex
+                    self.on_message(nw, chan, msg, tags)
+                    return
+
         ctx = {
             "nick": sender, "sender": sender,
             "channel": args[0] if len(args) > 0 else "",
-            "target": args[0] if len(args) > 0 else "",
+            "target": args[1] if len(args) > 1 else (args[0] if len(args) > 0 else ""),
             "msg": args[-1] if len(args) > 0 else "",
             "reason": args[-1] if len(args) > 0 else "",
             "mode": " ".join(args[1:]) if len(args) > 1 else "",
             "kicker": sender,
             "old_nick": sender,
             "new_nick": args[0] if len(args) > 0 else "",
-            # Simplified Colour tags
             "white": "\x0300", "black": "\x0301", "blue": "\x0302", "green": "\x0303",
             "red": "\x0304", "brown": "\x0305", "purple": "\x0306", "orange": "\x0307",
             "yellow": "\x0308", "teal": "\x0310", "cyan": "\x0311", "light_blue": "\x0312",
             "pink": "\x0313", "grey": "\x0314", "plain": "\x0f"
         }
         
+        if command == "KICK" and len(args) > 1:
+            ctx["nick"] = args[1]
+            ctx["target"] = args[1]
+            ctx["reason"] = args[2] if len(args) > 2 else ""
+            ctx["msg"] = ctx["reason"]
+
         try:
-            msg = fmt.format(**ctx)
-            if clr:
-                msg = f'<span style="color: {clr};">{msg}</span>'
-            # Route to correct buffer
-            target = ctx["channel"] if ctx["channel"].startswith('#') else ""
+            if command == "KICK" and len(args) > 1:
+                kicked_nick = args[1]
+                if kicked_nick.lower() == self.clients[nw].nickname.lower():
+                    channel = args[0] if len(args) > 0 else ""
+                    reason = args[2] if len(args) > 2 else ""
+                    msg = f"* You have been kicked from {channel} by {sender} ({reason})"
+                else:
+                    msg = fmt.format(**ctx)
+            else:
+                msg = fmt.format(**ctx)
+                
+            tags["fmt_color"] = clr_hex
+            target = ctx["channel"]
+            if not target.startswith('#'):
+                if command in ["NOTICE", "ACTION", "PRIVMSG"]:
+                    if target.lower() == self.clients[nw].nickname.lower(): target = sender
+                else: target = ""
             
-            # Logic: If I am the one joining/parting, we might want special handling
             if command == "JOIN" and sender.lower() == self.clients[nw].nickname.lower():
                 self.setup_buffer(nw, target)
                 if not self.find_item(nw, target): self.add_tree_item(nw, target)
-                # Only switch if we are currently on the status window (no active channel)
-                # or if this is the first channel joining.
-                if not self.current_target:
-                    self.switch_buffer(nw, target)
+                if not self.current_target: self.switch_buffer(nw, target)
             
             self.on_message(nw, target, msg, tags)
-        except: pass
+        except Exception as e:
+            # Log formatting errors but don't crash
+            print(f"Event formatting error for {command}: {e}")
 
     def on_message(self, nw, target, msg, tags=None):
         if tags is None: tags = {}
@@ -794,139 +677,292 @@ class MainWindow(QMainWindow):
         if self.settings.get("show_timestamps", True):
             fmt = self.settings.get("ts_format", "[%H:%M:%S]")
             colour = self.settings.get("ts_colour", "#888")
-            dt = datetime.datetime.fromisoformat(tags['time'].replace('Z', '+00:00')) if 'time' in tags else datetime.datetime.now()
+            t_tag = tags.get('time')
+            dt = datetime.datetime.fromisoformat(t_tag.replace('Z', '+00:00')) if t_tag else datetime.datetime.now()
             ts = f'<span style="color: {colour};">{dt.strftime(fmt)} </span>'
+
+        # Assemble the final line with highlight styling if needed
+        if is_highlight:
+            bg = self.settings.get("hl_bg", "rgba(255, 204, 0, 0.1)")
+            border = self.settings.get("hl_border", "#ffcc00")
+            final_line = f'<div style="background-color: {bg}; border-left: 3px solid {border}; padding-left: 5px;">{ts}{formatted_msg}</div>'
+        else:
+            style = ""
+            if "fmt_color" in tags and tags["fmt_color"]:
+                style = f' style="color: {tags["fmt_color"]};"'
+            final_line = f'<div{style}>{ts}{formatted_msg}</div>'
 
         buf = self.buffers[(nw, target)]
         buf["messages"].append(final_line)
         if len(buf["messages"]) > 2500: buf["messages"].pop(0)
         
-        if target and not self.find_item(nw, target): self.add_tree_item(nw, target)
+        if target and not self.find_item(nw, target):
+            self.add_tree_item(nw, target)
         
         # Batch messages for UI
         self.msg_queue.append((nw, target, final_line))
+        
+        # Logging to disk
+        if self.settings.get("enable_logging", True):
+            log_dir = os.path.join("logs", nw)
+            os.makedirs(log_dir, exist_ok=True)
+            log_file = os.path.join(log_dir, f"{target or 'status'}.log")
+            timestamp = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
+            clean_msg = msg # Use original msg for clean logs
+            try:
+                with open(log_file, "a", encoding="utf-8") as f:
+                    f.write(f"{timestamp} {clean_msg}\n")
+            except Exception as e:
+                print(f"Logging error: {e}")
+        
+        # Activity Highlighting in tree
+        if nw == self.current_nw and target == self.current_target: return
+        
+        it = self.find_item(nw, target)
+        if it:
+            if is_highlight:
+                buf["highlight"] = True
+                it.setForeground(0, QColor("#E95420")) # Ubuntu Orange
+            else:
+                buf["activity"] = True
+                if not buf["highlight"]:
+                    # Use a brighter version of the theme text color for activity
+                    # In dark mode this is usually white.
+                    it.setForeground(0, QColor("#ffffff" if self.settings.get("bg_colour", "#1e1e1e") != "#ffffff" else "#000000"))
+            
+            font = it.font(0)
+            font.setBold(True)
+            it.setFont(0, font)
 
     def flush_messages(self):
         if not self.msg_queue: return
-        
-        # Process current batch
-        batch = self.msg_queue[:]
-        self.msg_queue = []
+        batch_size = min(MAX_MESSAGES_PER_BATCH, len(self.msg_queue))
+        batch = self.msg_queue[:batch_size]
+        self.msg_queue = self.msg_queue[batch_size:]
         
         updates = {}
         for nw, target, line in batch:
             if (nw, target) not in updates: updates[(nw, target)] = []
             updates[(nw, target)].append(line)
             
-        # If the currently visible buffer is in the batch, update the UI
         if (self.current_nw, self.current_target) in updates:
             bar = self.chat.verticalScrollBar()
             at_bottom = bar.value() >= bar.maximum() - 20
-            
-            # Combine batch into one update to reduce layout recalculations
             self.chat.append("".join(updates[(self.current_nw, self.current_target)]))
-            
-            if at_bottom:
-                self.chat.moveCursor(QTextCursor.End)
+            if at_bottom: self.chat.moveCursor(QTextCursor.End)
 
     def find_item(self, nw, target):
-        for i in range(self.tree.topLevelItemCount()):
-            it = self.tree.topLevelItem(i)
-            if it.text(0) == nw:
-                for j in range(it.childCount()):
-                    if it.child(j).text(0) == target: return it.child(j)
-        return None
+        return self.tree_items.get((nw, target))
 
     def add_tree_item(self, nw, target):
-        for i in range(self.tree.topLevelItemCount()):
-            it = self.tree.topLevelItem(i)
-            if it.text(0) == nw:
-                child = QTreeWidgetItem(it); child.setText(0, target); return
+        if not target or (nw, target) in self.tree_items: return
+        p = self.find_item(nw, "")
+        if not p: return
+        
+        it = QTreeWidgetItem(p)
+        it.setText(0, target)
+        self.tree_items[(nw, target)] = it
+
+    def remove_tree_item(self, nw, target):
+        it = self.tree_items.pop((nw, target), None)
+        if it:
+            p = it.parent()
+            if p: p.removeChild(it)
 
     def on_nick(self, nw, data):
-        chan, nick = data; self.setup_buffer(nw, chan)
+        chan, nick = data
+        self.setup_buffer(nw, chan)
         if not self.find_item(nw, chan): self.add_tree_item(nw, chan)
         
-        # Clean up existing entry if it's there (to update prefix)
-        for i in range(self.nicks.count()):
-            if self.nicks.item(i).text().lstrip('~&@%+ ') == nick.lstrip('~&@%+ '):
-                self.nicks.takeItem(i); break
-
-        if nick not in self.buffers[(nw, chan)]["nicks"]:
-            self.buffers[(nw, chan)]["nicks"].append(nick)
-            if self.current_nw == nw and self.current_target == chan:
-                # Queue for throttled refresh
-                self.nick_update_queued.add((nw, chan))
-                if not self.nick_timer.isActive(): self.nick_timer.start(100)
+        prefix_chars = ''.join(NICK_PREFIXES) + ' '
+        raw_nick = nick.lstrip(prefix_chars)
+        nicks_list = self.buffers[(nw, chan)]["nicks"]
+        
+        found = False
+        for i, n in enumerate(nicks_list):
+            if n.lstrip(prefix_chars).lower() == raw_nick.lower():
+                nicks_list[i] = nick
+                found = True
+                break
+        
+        if not found: nicks_list.append(nick)
+            
+        if self.current_nw == nw and self.current_target == chan:
+            self.nick_update_queued.add((nw, chan))
+            if not self.nick_timer.isActive(): self.nick_timer.start(100)
 
     def flush_nicks(self):
-        # Refresh the visible nick list if it was updated
         if (self.current_nw, self.current_target) in self.nick_update_queued:
-            self.nick_update_queued.remove((self.current_nw, self.current_target))
             self.render_nick_list()
         self.nick_update_queued.clear()
 
     def render_nick_list(self):
-        if not self.current_nw or not self.current_target: return
-        buf = self.buffers.get((self.current_nw, self.current_target))
-        if not buf: return
-        
-        # Sort logic
-        def prefix_val(n):
-            p = n[0]
-            if p == '~': return 0
-            if p == '&': return 1
-            if p == '@': return 2
-            if p == '%': return 3
-            if p == '+': return 4
-            return 5
-        
-        sorted_nicks = sorted(buf["nicks"], key=lambda x: (prefix_val(x), x.lstrip('~&@%+ ').lower()))
-        
+        self.nicks.setUpdatesEnabled(False)
         self.nicks.clear()
+        
+        if not self.current_nw or not self.current_target:
+            self.nicks.setUpdatesEnabled(True)
+            return
+            
+        buf = self.buffers.get((self.current_nw, self.current_target))
+        if not buf:
+            self.nicks.setUpdatesEnabled(True)
+            return
+        
+        def get_rank(n):
+            return NICK_RANK_MAP.get(n[0], 5)
+        
+        prefix_chars = ''.join(NICK_PREFIXES) + ' '
+        sorted_nicks = sorted(
+            buf["nicks"], 
+            key=lambda x: (get_rank(x), x.lstrip(prefix_chars).lower())
+        )
+        
         self.nicks.addItems(sorted_nicks)
+        self.nicks.setUpdatesEnabled(True)
 
     def on_part(self, nw, chan, nick):
+        prefix_chars = ''.join(NICK_PREFIXES) + ' '
+        raw_nick = nick.lstrip(prefix_chars)
+        
+        if raw_nick.lower() == self.clients[nw].nickname.lower() and chan:
+            if self.current_nw == nw and self.current_target == chan:
+                self.switch_buffer(nw, "")
+            self.remove_tree_item(nw, chan)
+        
         keys = [(nw, chan)] if chan else [k for k in self.buffers if k[0] == nw]
+        
+        refresh_needed = False
         for k in keys:
-            if nick in self.buffers[k]["nicks"]:
-                self.buffers[k]["nicks"].remove(nick)
-                if self.current_nw == nw and self.current_target == k[1]:
-                    for i in range(self.nicks.count()):
-                        if self.nicks.item(i).text() == nick: self.nicks.takeItem(i); break
+            nicks_list = self.buffers[k].get("nicks", [])
+            for n in list(nicks_list):
+                if n.lstrip(prefix_chars).lower() == raw_nick.lower():
+                    nicks_list.remove(n)
+                    if self.current_nw == nw and self.current_target == k[1]:
+                        refresh_needed = True
+                    break
+        
+        if refresh_needed:
+            self.nick_update_queued.add((self.current_nw, self.current_target))
+            if not self.nick_timer.isActive():
+                self.nick_timer.start(100)
+
+    def on_quit(self, nw, nick, reason):
+        self.on_part(nw, None, nick)
+        msg = f"*** {nick} quit ({reason})"
+        for k in [k for k in self.buffers if k[0] == nw and k[1]]:
+            self.on_message(nw, k[1], msg)
 
     def on_nick_change(self, nw, old, new):
+        prefix_chars = ''.join(NICK_PREFIXES) + ' '
+        old_raw = old.lstrip(prefix_chars)
+        
+        refresh_needed = False
         for k in [k for k in self.buffers if k[0] == nw]:
-            if old in self.buffers[k]["nicks"]:
-                self.buffers[k]["nicks"].remove(old); self.buffers[k]["nicks"].append(new)
-                if self.current_nw == nw and self.current_target == k[1]:
-                    for i in range(self.nicks.count()):
-                        if self.nicks.item(i).text() == old: self.nicks.item(i).setText(new); self.nicks.sortItems(); break
+            nicks_list = self.buffers[k].get("nicks", [])
+            for i, n in enumerate(nicks_list):
+                if n.lstrip(prefix_chars).lower() == old_raw.lower():
+                    prefix = n[:len(n) - len(old_raw)]
+                    nicks_list[i] = prefix + new
+                    # Show nick change in the buffer where it happened
+                    msg = f"*** {old} is now known as {new}"
+                    self.on_message(nw, k[1], msg)
+                    if self.current_nw == nw and self.current_target == k[1]:
+                        refresh_needed = True
+                    break
+        
+        if refresh_needed:
+            self.nick_update_queued.add((self.current_nw, self.current_target))
+            if not self.nick_timer.isActive():
+                self.nick_timer.start(100)
 
     def on_kick(self, nw, chan, target, kicker, reason):
-        if target in self.buffers.get((nw, chan), {}).get("nicks", []):
-            self.buffers[(nw, chan)]["nicks"].remove(target)
+        self.on_event_received(nw, "KICK", kicker, [chan, target, reason], {})
+        prefix_chars = ''.join(NICK_PREFIXES) + ' '
+        target_raw = target.lstrip(prefix_chars)
+        
+        if target_raw.lower() == self.clients[nw].nickname.lower():
             if self.current_nw == nw and self.current_target == chan:
-                self.nick_update_queued.add((nw, chan))
-                if not self.nick_timer.isActive(): self.nick_timer.start(100)
+                self.switch_buffer(nw, "")
+            self.remove_tree_item(nw, chan)
+            
+        nicks_list = self.buffers.get((nw, chan), {}).get("nicks", [])
+        for n in list(nicks_list):
+            if n.lstrip(prefix_chars).lower() == target_raw.lower():
+                nicks_list.remove(n)
+                if self.current_nw == nw and self.current_target == chan:
+                    self.nick_update_queued.add((nw, chan))
+                    if not self.nick_timer.isActive():
+                        self.nick_timer.start(100)
+                break
 
     def on_mode(self, nw, chan, sender, mode):
-        pass
+        """Handle MODE changes for ranks (@, +, etc.)."""
+        self.on_event_received(nw, "MODE", sender, [chan, mode], {})
+        
+        prefix_chars = ''.join(NICK_PREFIXES) + ' '
+        
+        parts = mode.split()
+        if len(parts) < 2: return
+        flags_str = parts[0]
+        args = parts[1:]
+        
+        if not flags_str.startswith(('+', '-')): return
+        
+        action = flags_str[0] # + or -
+        arg_idx = 0
+        for char in flags_str[1:]:
+            if char in NICK_RANK_MODES:
+                if arg_idx < len(args):
+                    target_nick = args[arg_idx]
+                    prefix = NICK_RANK_MODES[char]
+                    
+                    nicks = self.buffers.get((nw, chan), {}).get("nicks", [])
+                    for i, n in enumerate(nicks):
+                        raw = n.lstrip(prefix_chars)
+                        if raw.lower() == target_nick.lower():
+                            if action == '+':
+                                nicks[i] = prefix + raw
+                            else:
+                                if n.startswith(prefix):
+                                    nicks[i] = raw
+                            break
+                    arg_idx += 1
+            elif char in "beI": # List modes always take arg
+                arg_idx += 1
+            elif char == "k": # Key always takes arg
+                arg_idx += 1
+            elif char == "l" and action == "+": # Limit takes arg on +
+                arg_idx += 1
+            # Other modes like +nt skip args
+        
+        if self.current_nw == nw and self.current_target == chan:
+            self.nick_update_queued.add((nw, chan))
+            if not self.nick_timer.isActive():
+                self.nick_timer.start(100)
 
     def on_notice(self, nw, target, sender, msg):
-        pass
+        """Handle NOTICE messages."""
+        self.on_event_received(nw, "NOTICE", sender, [target, msg], {})
 
     def on_invite(self, nw, chan, sender, nick):
-        pass
+        msg = f"*** {sender} invited {nick} to {chan}"
+        self.on_message(nw, "", msg)
+
+    def on_action(self, nw, target, sender, msg):
+        # Route through event system for consistent formatting
+        self.on_event_received(nw, "ACTION", sender, [target, msg], {})
 
     def on_topic(self, nw, chan, topic):
         self.setup_buffer(nw, chan)
-        if not self.find_item(nw, chan): self.add_tree_item(nw, chan)
+        self.add_tree_item(nw, chan)
         self.buffers[(nw, chan)]["topic"] = topic
         if self.current_nw == nw and self.current_target == chan: self.topic.setText(topic)
 
     def on_disconnect(self, nw):
         self.on_message(nw, "", f"*** Disconnected from {nw}")
+        if self.current_nw == nw:
+            self.statusBar().showMessage(f"Disconnected from {nw} - auto-reconnect may be in progress", 5000)
 
     def on_send(self):
         txt = self.input.toPlainText().strip()
@@ -971,4 +1007,40 @@ class MainWindow(QMainWindow):
 
     def openNetworkListDialogue(self): NetworkListDialogue(self).exec_()
     def openSettingsDialogue(self):
-        if SettingsDialogue(self, self.settings).exec_(): self.save_settings(); self.apply_theme()
+        if SettingsDialogue(self, self.settings).exec_():
+            self.save_settings()
+            self.apply_theme()
+
+    def on_tree_context_menu(self, pos):
+        item = self.tree.itemAt(pos)
+        if not item: return
+        
+        menu = QMenu()
+        p = item.parent()
+        if not p: # Network
+            nw = item.text(0)
+            if nw in self.clients:
+                discon = menu.addAction("Disconnect")
+            else:
+                con = menu.addAction("Connect")
+                
+            action = menu.exec_(self.tree.mapToGlobal(pos))
+            if nw in self.clients and action == discon:
+                self.clients[nw].socket.disconnectFromHost()
+            elif nw not in self.clients and action == con:
+                pass
+        else: # Channel/Target
+            nw, target = p.text(0), item.text(0)
+            is_chan = target.startswith(('#', '&'))
+            
+            if is_chan:
+                part = menu.addAction("Part Channel")
+            close = menu.addAction("Close")
+            
+            action = menu.exec_(self.tree.mapToGlobal(pos))
+            if is_chan and action == part:
+                self.clients[nw].send_command(f"PART {target}")
+            elif action == close:
+                self.remove_tree_item(nw, target)
+                if self.current_nw == nw and self.current_target == target:
+                    self.switch_buffer(nw, "")

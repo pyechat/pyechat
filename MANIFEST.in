@@ -1,0 +1,9 @@
+# PyeChat Manifest
+include README.md
+include LICENSE
+include CONTRIBUTING.md
+include requirements.txt
+recursive-include assets *
+recursive-include data *.example.json
+recursive-exclude data *.json
+exclude data/networks.json data/settings.json

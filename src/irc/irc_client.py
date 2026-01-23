@@ -16,6 +16,8 @@ class IRCClient(QObject):
     received_mode = pyqtSignal(str, str, str)      # channel, sender, mode_string
     received_notice = pyqtSignal(str, str, str)    # target, sender, message
     received_invite = pyqtSignal(str, str, str)    # channel, sender, invited_nick
+    received_action = pyqtSignal(str, str, str)    # target, sender, message
+    received_quit = pyqtSignal(str, str)          # nick, reason
     event_received = pyqtSignal(str, str, list, dict) # command, sender, args, tags
 
     def __init__(self, network_name, server, port, nickname, realname, auto_join_channels=None, use_ssl=False, password=None, auto_reconnect=True, sasl_method=None, sasl_user=None, sasl_pass=None, auto_commands=None):
@@ -202,8 +204,7 @@ class IRCClient(QObject):
 
             elif command == 'QUIT':
                 reason = args[0] if args else "Quit"
-                self.received_message.emit("", f"quit {sender} {reason}", tags) # Internal trigger
-                self.parted_channel.emit("", sender)
+                self.received_quit.emit(sender, reason)
 
             elif command == 'NICK':
                 new_nick = args[0]
@@ -221,6 +222,7 @@ class IRCClient(QObject):
             elif command == '332': # Topic
                 self.received_topic.emit(args[1], args[2])
 
+            elif command == '353': # NAMES list
                 chan = args[2]
                 for n in args[3].split():
                     self.received_nick_list.emit((chan, n))
@@ -243,6 +245,9 @@ class IRCClient(QObject):
         elif command == 'TIME':
             now = datetime.datetime.now().ctime()
             self.send_command(f'NOTICE {sender} :\x01TIME {now}\x01')
+        elif command == 'ACTION':
+            msg = parts[1] if len(parts) > 1 else ""
+            self.received_action.emit(target, sender, msg)
 
     def send_ping(self):
         if self.socket.state() == QSslSocket.ConnectedState:
