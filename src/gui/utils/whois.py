@@ -1,4 +1,4 @@
-def format_whois_to_irc(data):
+def format_whois_to_irc(data, label_color="14", value_color=""):
     """
     Converts structured WHOIS data back into an IRC-formatted string with colors
     for display in the chat browser. Uses The Lounge's label-based format.
@@ -8,10 +8,14 @@ def format_whois_to_irc(data):
     t = data.get("type")
     nick = data.get("nick", "unknown")
     
+    L = f"\x03{label_color}"
+    V = f"\x03{value_color}" if value_color else "\x03"
+    R = "\x03" # Reset
+    
     if t == "user":
-        return f"\x0314Nickname:\x03 {nick}\n\x0314Host mask:\x03 {data['user']}@{data['host']}\n\x0314Real name:\x03 {data['realname']}"
+        return f"{L}Nickname:{R} {V}{nick}\n{L}Host mask:{R} {V}{data['user']}@{data['host']}\n{L}Real name:{R} {V}{data['realname']}"
     elif t == "server":
-        return f"\x0314Connected to:\x03 {data['server']} ({data['info']})"
+        return f"{L}Connected to:{R} {V}{data['server']} ({data['info']})"
     elif t == "idle":
         # Convert seconds to HH:MM:SS
         idle_secs = data['idle']
@@ -20,33 +24,33 @@ def format_whois_to_irc(data):
         seconds = idle_secs % 60
         idle_formatted = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         
-        msg = f"\x0314Idle since:\x03 {idle_formatted}"
+        msg = f"{L}Idle since:{R} {V}{idle_formatted}"
         if data.get('signon'):
-            msg += f", \x0314signon:\x03 {data['signon']}"
+            msg += f", {L}signon:{R} {V}{data['signon']}"
         return msg
     elif t == "status":
-        return f"\x0314Registered nick:\x03 {data['info']}"
+        return f"{L}Registered nick:{R} {V}{data['info']}"
     elif t == "bot":
-        return f"\x0314Bot status:\x03 {data['info']}"
+        return f"{L}Bot status:{R} {V}{data['info']}"
     elif t == "channels":
-        return f"\x0314Channels:\x03 {data['channels']}"
+        return f"{L}Channels:{R} {V}{data['channels']}"
     elif t == "account":
-        return f"\x0314Logged in as:\x03 {data['account']}"
+        return f"{L}Logged in as:{R} {V}{data['account']}"
     elif t == "away":
-        return f"\x0314Away message:\x03 {data['message']}"
+        return f"{L}Away message:{R} {V}{data['message']}"
     elif t == "ircop":
-        return f"\x0314IRC Operator:\x03 {data['privs']}"
+        return f"{L}IRC Operator:{R} {V}{data['privs']}"
     elif t == "realhost":
-        return f"\x0314Actual host:\x03 {data['info']}"
+        return f"{L}Actual host:{R} {V}{data['info']}"
     elif t == "modes":
-        return f"\x0314Modes:\x03 {data['modes']}"
+        return f"{L}Modes:{R} {V}{data['modes']}"
     elif t == "ssl_fingerprint":
-        return f"\x0314SSL Fingerprint:\x03 {data['fingerprint']}"
+        return f"{L}SSL Fingerprint:{R} {V}{data['fingerprint']}"
     elif t == "secure":
-        return f"\x0314Secure connection:\x03 Yes"
+        return f"{L}Secure connection:{R} {V}Yes"
     elif t == "country":
-        return f"\x0314Country:\x03 {data['country']}"
+        return f"{L}Country:{R} {V}{data['country']}"
     elif t == "end":
-        return f"\x0314End of WHOIS"
+        return f"{L}End of WHOIS"
     
     return ""

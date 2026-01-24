@@ -210,6 +210,14 @@ class SettingsDialogue(QDialog):
         self.font_btn = QPushButton("Change Chat Font")
         self.font_btn.clicked.connect(self.on_change_font)
         layout.addRow("Font:", self.font_btn)
+        layout.addRow(QLabel(" "))
+
+        self.whois_label_idx = QLineEdit(self.settings.get("whois_label_index", "14"))
+        self.whois_value_idx = QLineEdit(self.settings.get("whois_value_index", ""))
+        self.whois_label_idx.setPlaceholderText("IRC color code (0-99)")
+        self.whois_value_idx.setPlaceholderText("IRC color code (0-99)")
+        layout.addRow("WHOIS Label IRC Code:", self.whois_label_idx)
+        layout.addRow("WHOIS Value IRC Code:", self.whois_value_idx)
 
         scroll.setWidget(container)
         main_layout.addWidget(scroll)
@@ -293,7 +301,9 @@ class SettingsDialogue(QDialog):
             "completion_suffix": self.comp_suffix.text(),
             "events_v2": self.get_table_data_v2(),
             "default_nick": self.default_nick.text(),
-            "real_name": self.real_name.text()
+            "real_name": self.real_name.text(),
+            "whois_label_index": self.whois_label_idx.text(),
+            "whois_value_index": self.whois_value_idx.text()
         })
 
     def accept(self):

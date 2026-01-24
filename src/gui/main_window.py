@@ -140,7 +140,9 @@ class MainWindow(QMainWindow):
                     "NOTICE": {"fmt": "-%C29$1%C- $2", "colour": ""},
                     "INVITE": {"fmt": "*** $2 invited you to $1", "colour": ""},
                     "ACTION": {"fmt": "* {sender} {msg}", "colour": "#00aa00"}
-                }
+                },
+                "whois_label_index": "14",
+                "whois_value_index": ""
             }
 
     def save_settings(self):
@@ -913,7 +915,9 @@ class MainWindow(QMainWindow):
             return
         
         # Fall back to hardcoded formatting
-        msg = format_whois_to_irc(data)
+        label_clr = self.settings.get("whois_label_index", "14")
+        value_clr = self.settings.get("whois_value_index", "")
+        msg = format_whois_to_irc(data, label_color=label_clr, value_color=value_clr)
         if msg:
             # Split multi-line messages so each gets its own timestamp
             for line in msg.split('\n'):
