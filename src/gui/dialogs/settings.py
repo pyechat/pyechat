@@ -1,4 +1,4 @@
-\"\"\"Settings dialog for PyeChat.\"\"\"
+"""Settings dialog for PyeChat."""
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, 
                              QWidget, QTabWidget, QCheckBox, QLineEdit, QComboBox,
                              QGroupBox, QLabel, QTableWidget, QTableWidgetItem,
@@ -255,12 +255,12 @@ class SettingsDialogue(QDialog):
         c1, c2 = get_nick_colour("Alice", bg), get_nick_colour("Bob", bg)
         nick = s.get("default_nick", "User")
         
-        html = f\"<div style='background-color:{bg}; color:{fg}; padding:10px; font-family: monospace;'>\"
-        html += f\"<div><span style='color:{ts}'>[12:00:00]</span> <span style='color:{c1}'>&lt;Alice&gt;</span> Hello!</div>\"
-        html += f\"<div><span style='color:{ts}'>[12:00:05]</span> <span style='color:{c2}'>&lt;Bob&gt;</span> Testing theme...</div>\"
-        html += f\"<div style='background-color:{hbg}; border-left:3px solid {hb}; padding-left:5px;'>\"
-        html += f\"<span style='color:{ts}'>[12:00:10]</span> <span style='color:{c1}'>&lt;Alice&gt;</span> {nick}, check this out!</div>\"
-        html += \"</div>\"
+        html = f"<div style='background-color:{bg}; color:{fg}; padding:10px; font-family: monospace;'>"
+        html += f"<div><span style='color:{ts}'>[12:00:00]</span> <span style='color:{c1}'>&lt;Alice&gt;</span> Hello!</div>"
+        html += f"<div><span style='color:{ts}'>[12:00:05]</span> <span style='color:{c2}'>&lt;Bob&gt;</span> Testing theme...</div>"
+        html += f"<div style='background-color:{hbg}; border-left:3px solid {hb}; padding-left:5px;'>"
+        html += f"<span style='color:{ts}'>[12:00:10]</span> <span style='color:{c1}'>&lt;Alice&gt;</span> {nick}, check this out!</div>"
+        html += "</div>"
         return html
 
     def add_colour_option(self, layout, label, key):
@@ -272,34 +272,34 @@ class SettingsDialogue(QDialog):
     def update_button_swatch(self, btn, key):
         clr = self.settings.get(key, "#ffffff")
         qclr = QColor(clr if not clr.startswith("rgba") else "transparent")
-        fg = \"#fff\" if qclr.lightness() < 128 else \"#000\"
-        btn.setStyleSheet(f\"background-color:{clr}; color:{fg}; border:1px solid #555; height:24px; font-weight:bold;\")
+        fg = "#fff" if qclr.lightness() < 128 else "#000"
+        btn.setStyleSheet(f"background-color:{clr}; color:{fg}; border:1px solid #555; height:24px; font-weight:bold;")
         if hasattr(self, 'preview_chat'): self.preview_chat.setHtml(self.get_preview_html())
 
     def pick_colour(self, key, btn):
-        current = QColor(self.settings.get(key, \"#ffffff\"))
-        clr = QColorDialog.getColor(current, self, \"Pick color\", QColorDialog.DontUseNativeDialog)
+        current = QColor(self.settings.get(key, "#ffffff"))
+        clr = QColorDialog.getColor(current, self, "Pick color", QColorDialog.DontUseNativeDialog)
         if clr.isValid():
             self.settings[key] = clr.name()
             self.update_button_swatch(btn, key)
-            self.preset_combo.setCurrentText(\"Custom\")
+            self.preset_combo.setCurrentText("Custom")
 
     def on_preset_change(self, name):
-        self.settings[\"use_system_theme\"] = (name == \"System Default\")
+        self.settings["use_system_theme"] = (name == "System Default")
         if hasattr(self, 'preview_chat'): self.preview_chat.setHtml(self.get_preview_html())
 
     def on_change_font(self):
         font, ok = QFontDialog.getFont(self.parent.chat.font(), self)
-        if ok: self.settings[\"font\"] = font.toString()
+        if ok: self.settings["font"] = font.toString()
 
     def setup_identity_tab(self):
         tab = QWidget()
         layout = QFormLayout(tab)
-        self.default_nick = QLineEdit(self.settings.get(\"default_nick\", \"pyechat_user\"))
-        self.real_name = QLineEdit(self.settings.get(\"real_name\", \"PyeChat User\"))
-        layout.addRow(\"Default Nick:\", self.default_nick)
-        layout.addRow(\"Real Name:\", self.real_name)
-        self.tabs.addTab(tab, \"Identity\")
+        self.default_nick = QLineEdit(self.settings.get("default_nick", "pyechat_user"))
+        self.real_name = QLineEdit(self.settings.get("real_name", "PyeChat User"))
+        layout.addRow("Default Nick:", self.default_nick)
+        layout.addRow("Real Name:", self.real_name)
+        self.tabs.addTab(tab, "Identity")
 
     def apply_live(self):
         self.update_dict()
@@ -307,17 +307,17 @@ class SettingsDialogue(QDialog):
 
     def update_dict(self):
         self.settings.update({
-            \"show_timestamps\": self.ts.isChecked(),
-            \"ts_format\": self.ts_fmt.text(),
-            \"show_events\": self.events.isChecked(),
-            \"auto_reconnect\": self.reconnect.isChecked(),
-            \"nick_colouring\": self.nick_colour.isChecked(),
-            \"highlight_mentions\": self.highlight.isChecked(),
-            \"conn_info_level\": self.conn_info.currentText(),
-            \"completion_suffix\": self.comp_suffix.text(),
-            \"events_v2\": self.get_table_data_v2(),
-            \"default_nick\": self.default_nick.text(),
-            \"real_name\": self.real_name.text()
+            "show_timestamps": self.ts.isChecked(),
+            "ts_format": self.ts_fmt.text(),
+            "show_events": self.events.isChecked(),
+            "auto_reconnect": self.reconnect.isChecked(),
+            "nick_colouring": self.nick_colour.isChecked(),
+            "highlight_mentions": self.highlight.isChecked(),
+            "conn_info_level": self.conn_info.currentText(),
+            "completion_suffix": self.comp_suffix.text(),
+            "events_v2": self.get_table_data_v2(),
+            "default_nick": self.default_nick.text(),
+            "real_name": self.real_name.text()
         })
 
     def accept(self):
@@ -331,5 +331,5 @@ class SettingsDialogue(QDialog):
             if it_name and it_fmt:
                 cmd = it_name.data(Qt.UserRole)
                 fmt = it_fmt.text().strip()
-                if cmd: data[cmd] = {\"fmt\": fmt, \"colour\": \"\"}
+                if cmd: data[cmd] = {"fmt": fmt, "colour": ""}
         return data
