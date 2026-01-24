@@ -13,9 +13,16 @@ def format_whois_to_irc(data):
     elif t == "server":
         return f"\x0314Connected to:\x03 {data['server']} ({data['info']})"
     elif t == "idle":
-        msg = f"\x0314Idle since:\x03 {data['idle']}s"
+        # Convert seconds to HH:MM:SS
+        idle_secs = data['idle']
+        hours = idle_secs // 3600
+        minutes = (idle_secs % 3600) // 60
+        seconds = idle_secs % 60
+        idle_formatted = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        
+        msg = f"* [{nick}] idle {idle_formatted}"
         if data.get('signon'):
-            msg += f"\n\x0314Connected at:\x03 {data['signon']}"
+            msg += f", signon: {data['signon']}"
         return msg
     elif t == "status":
         return f"\x0314Registered nick:\x03 {data['info']}"
