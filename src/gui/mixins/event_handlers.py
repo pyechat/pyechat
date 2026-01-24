@@ -6,90 +6,120 @@ from src.gui.utils.whois import format_whois_to_irc
 NICK_PREFIXES = ('~', '&', '@', '%', '+')
 NICK_RANK_MODES = {'o': '@', 'v': '+', 'h': '%', 'a': '&', 'q': '~'}
 
+# Standard mIRC control codes for constructing event strings
+C = {
+    'WHITE': '\x0300', 'BLACK': '\x0301', 'BLUE': '\x0302', 'GREEN': '\x0303',
+    'RED': '\x0304', 'BROWN': '\x0305', 'PURPLE': '\x0306', 'ORANGE': '\x0307',
+    'YELLOW': '\x0308', 'TEAL': '\x0310', 'CYAN': '\x0311', 'LIGHT_BLUE': '\x0312',
+    'PINK': '\x0313', 'GREY': '\x0314', 'PLAIN': '\x0f'
+}
+
 class EventHandlerMixin:
     def on_event_received(self, nw, command, sender, args, tags):
         events = self.settings.get("events_v2", {})
-        if command not in events: return
+        
+        # Fallback for core events if they are not explicitly customised
+        if command not in events:
+            self._handle_fallback_event(nw, command, sender, args, tags)
+            return
+
         data = events[command]
-        fmt = data["fmt"] if isinstance(data, dict) else data
+        fmt = data.get("fmt", "") if isinstance(data, dict) else data
         clr_hex = data.get("colour", "") if isinstance(data, dict) else ""
+        
         if not fmt: return
         
-        host = tags.get('host', '')
-        evt_args = []
-        target = ""
-        mode_str = ""
-
-        if command == "JOIN":
-            target = args[0]
-            evt_args = [sender, target, host]
-        elif command == "PART":
-            target = args[0]
-            reason = args[1] if len(args) > 1 else ""
-            evt_args = [sender, host, target, reason]
-        elif command == "QUIT":
-            reason = args[0] if args else ""
-            evt_args = [sender, reason, host]
-        elif command == "KICK":
-            target = args[0]
-            kicked = args[1]
-            reason = args[2] if len(args) > 2 else ""
-            evt_args = [sender, kicked, target, reason]
-            if kicked.lower() == self.clients[nw].nickname.lower():
-                msg = f"* You have been kicked from {target} by {sender} ({reason})"
-                self.on_message(nw, target, msg, tags)
-                return
-        elif command == "NICK":
-            new_nick = args[0]
-            evt_args = [sender, new_nick]
-        elif command == "MODE":
-            target = args[0]
-            mode_str = " ".join(args[1:]) if len(args) > 1 else ""
-            evt_args = [sender, mode_str, target]
-        elif command == "NOTICE":
-            target = args[0]
-            msg = args[1]
-            evt_args = [sender, msg]
-            if target.lower() == self.clients[nw].nickname.lower(): target = sender
-        elif command == "INVITE":
-            target = ""
-            chan = args[1]
-            evt_args = [chan, sender]
-        elif command.isdigit():
-            evt_args = args[1:] if len(args) > 1 else args
+        # Build the context for variable replacement
+        ctx = self._build_event_context(nw, command, sender, args, tags)
         
         try:
             if '$' in fmt:
-                msg = format_text_event(fmt, evt_args)
+                # Custom handler for HexChat style variables ($1, $2, etc)
+                msg_text = format_text_event(fmt, self._get_numeric_args(command, sender, args, tags))
             else:
-                ctx = {
-                    "nick": sender, "sender": sender, "host": host,
-                    "channel": target, "target": target,
-                    "msg": args[-1] if args else "", "reason": args[-1] if args else "",
-                    "mode": mode_str if command == "MODE" else "",
-                    "kicker": sender if command == "KICK" else "",
-                    "old_nick": sender if command == "NICK" else "",
-                    "new_nick": args[0] if command == "NICK" else "",
-                    "white": "\x0300", "black": "\x0301", "blue": "\x0302", "green": "\x0303",
-                    "red": "\x0304", "brown": "\x0305", "purple": "\x0306", "orange": "\x0307",
-                    "yellow": "\x0308", "teal": "\x0310", "cyan": "\x0311", "light_blue": "\x0312",
-                    "pink": "\x0313", "grey": "\x0314", "plain": "\x0f", "c23": "\x0323",
-                    "n": sender, "h": host, "c": target, "m": args[-1] if args else ""
-                }
-                msg = fmt.format(**ctx)
+                # Python string format handler
+                msg_text = fmt.format(**ctx)
                 
             tags["fmt_color"] = clr_hex
             
+            # Handle side-effects (like joining a channel self also means opening a buffer)
             if command == "JOIN" and sender.lower() == self.clients[nw].nickname.lower():
+                target = args[0]
                 self.setup_buffer(nw, target)
                 if not self.find_item(nw, target): self.add_tree_item(nw, target)
                 if not self.current_target: self.switch_buffer(nw, target)
             
-            for line in msg.split('\n'):
+            for line in msg_text.split('\n'):
                 if line.strip():
-                    self.on_message(nw, target, line, tags)
+                    self.on_message(nw, ctx.get('target', ''), line, tags)
+                    
         except Exception as e:
-            print(f"Event formatting error for {command}: {e}")
+            # Silently log format errors to avoided flooding the UI
+            print(f"Error formatting event '{command}': {e}")
+
+    def _handle_fallback_event(self, nw, command, sender, args, tags):
+        """Default display logic for core events when no theme is present."""
+        if command == "JOIN":
+            target = args[0]
+            self.on_message(nw, target, f"*** {sender} ({tags.get('host', 'unknown')}) has joined {target}")
+        elif command == "PART":
+            target = args[0]
+            reason = f" ({args[1]})" if len(args) > 1 else ""
+            self.on_message(nw, target, f"*** {sender} has left {target}{reason}")
+        elif command == "QUIT":
+            reason = f" ({args[0]})" if args else ""
+            for k in [k for k in self.buffers if k[0] == nw and k[1]]:
+                self.on_message(nw, k[1], f"*** {sender} has quit{reason}")
+        elif command == "NICK":
+            self.on_message(nw, "", f"*** {sender} is now known as {args[0]}")
+        elif command == "KICK":
+            chan, target, reason = args[0], args[1], f" ({args[2]})" if len(args) > 2 else ""
+            self.on_message(nw, chan, f"*** {target} was kicked by {sender}{reason}")
+        elif command == "MODE":
+            chan, mode = args[0], args[1]
+            self.on_message(nw, chan, f"*** {sender} sets mode: {mode}")
+
+    def _build_event_context(self, nw, command, sender, args, tags):
+        """Constructs the dictionary used for string formatting."""
+        target = args[0] if args else ""
+        # Adjust target based on event type
+        if command in ("QUIT", "NICK"): target = ""
+        if command == "NOTICE" and len(args) > 0 and args[0].lower() == self.clients[nw].nickname.lower(): target = sender
+        if command == "INVITE" and len(args) > 1: target = "" # Invites are usually global notices
+        
+        mode_str = " ".join(args[1:]) if command == "MODE" and len(args) > 1 else ""
+        
+        return {
+            "nick": sender, "sender": sender, "host": tags.get('host', ''),
+            "channel": target, "target": target,
+            "msg": args[-1] if args else "", "reason": args[-1] if args else "",
+            "mode": mode_str,
+            "kicker": sender if command == "KICK" else "",
+            "old_nick": sender if command == "NICK" else "",
+            "new_nick": args[0] if command == "NICK" else "",
+            
+            # Colour helpers
+            "white": C['WHITE'], "black": C['BLACK'], "blue": C['BLUE'], "green": C['GREEN'],
+            "red": C['RED'], "brown": C['BROWN'], "purple": C['PURPLE'], "orange": C['ORANGE'],
+            "yellow": C['YELLOW'], "teal": C['TEAL'], "cyan": C['CYAN'], "light_blue": C['LIGHT_BLUE'],
+            "pink": C['PINK'], "grey": C['GREY'], "plain": C['PLAIN'], 
+            
+            # Short aliases
+            "n": sender, "h": tags.get('host', ''), "c": target, "m": args[-1] if args else ""
+        }
+
+    def _get_numeric_args(self, command, sender, args, tags):
+        """Helper to map args for $1, $2 style replacement."""
+        if command == "JOIN": return [sender, args[0], tags.get('host', '')]
+        if command == "PART": return [sender, tags.get('host', ''), args[0], args[1] if len(args) > 1 else ""]
+        if command == "QUIT": return [sender, args[0] if args else "", tags.get('host', '')]
+        if command == "KICK": return [sender, args[1], args[0], args[2] if len(args) > 2 else ""]
+        if command == "NICK": return [sender, args[0]]
+        if command == "MODE": return [sender, " ".join(args[1:]) if len(args) > 1 else "", args[0]]
+        if command == "NOTICE": return [sender, args[1]]
+        if command == "INVITE": return [args[1], sender]
+        if command.isdigit(): return args[1:] if len(args) > 1 else args
+        return args
 
     def on_part(self, nw, chan, nick):
         prefix_chars = ''.join(NICK_PREFIXES) + ' '
@@ -119,9 +149,6 @@ class EventHandlerMixin:
 
     def on_quit(self, nw, nick, reason):
         self.on_part(nw, None, nick)
-        msg = f"*** {nick} quit ({reason})"
-        for k in [k for k in self.buffers if k[0] == nw and k[1]]:
-            self.on_message(nw, k[1], msg)
 
     def on_nick_change(self, nw, old, new):
         prefix_chars = ''.join(NICK_PREFIXES) + ' '
@@ -134,8 +161,6 @@ class EventHandlerMixin:
                 if n.lstrip(prefix_chars).lower() == old_raw.lower():
                     prefix = n[:len(n) - len(old_raw)]
                     nicks_list[i] = prefix + new
-                    msg = f"*** {old} is now known as {new}"
-                    self.on_message(nw, k[1], msg)
                     if self.current_nw == nw and self.current_target == k[1]:
                         refresh_needed = True
                     break
@@ -146,7 +171,6 @@ class EventHandlerMixin:
                 self.nick_timer.start(100)
 
     def on_kick(self, nw, chan, target, kicker, reason):
-        self.on_event_received(nw, "KICK", kicker, [chan, target, reason], {})
         prefix_chars = ''.join(NICK_PREFIXES) + ' '
         target_raw = target.lstrip(prefix_chars)
         
@@ -185,7 +209,6 @@ class EventHandlerMixin:
                     self.on_message(nw, "", line, tags)
     
     def on_mode(self, nw, chan, sender, mode):
-        self.on_event_received(nw, "MODE", sender, [chan, mode], {})
         prefix_chars = ''.join(NICK_PREFIXES) + ' '
         
         parts = mode.split()
@@ -224,14 +247,13 @@ class EventHandlerMixin:
                 self.nick_timer.start(100)
 
     def on_notice(self, nw, target, sender, msg):
-        self.on_event_received(nw, "NOTICE", sender, [target, msg], {})
+        pass
 
     def on_invite(self, nw, chan, sender, nick):
-        msg = f"*** {sender} invited {nick} to {chan}"
-        self.on_message(nw, "", msg)
+        pass
 
     def on_action(self, nw, target, sender, msg):
-        self.on_event_received(nw, "ACTION", sender, [target, msg], {})
+        pass
 
     def on_topic(self, nw, chan, topic):
         self.setup_buffer(nw, chan)

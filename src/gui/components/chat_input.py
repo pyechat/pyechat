@@ -23,6 +23,9 @@ class ChatInput(QPlainTextEdit):
             self.do_tab_completion()
             return
         
+        if hasattr(self, '_tab_state'):
+            delattr(self, '_tab_state')
+        
         if event.key() in [Qt.Key_Return, Qt.Key_Enter]:
             if event.modifiers() & Qt.ShiftModifier:
                 super().keyPressEvent(event)
@@ -34,7 +37,6 @@ class ChatInput(QPlainTextEdit):
 
     def adjust_height(self):
         doc = self.document()
-        layout = doc.documentLayout()
         doc.setTextWidth(self.viewport().width())
         h = doc.size().height() + INPUT_PADDING
         self.setFixedHeight(int(min(max(h, INPUT_MIN_HEIGHT), INPUT_MAX_HEIGHT)))
@@ -51,7 +53,6 @@ class ChatInput(QPlainTextEdit):
         
         if pos == 0: return
         
-        # 1. Check if we're already cycling through candidates
         if hasattr(self, '_tab_state') and self._tab_state['text'] == text and self._tab_state['pos'] == pos:
             state = self._tab_state
             idx = (state['idx'] + 1) % len(state['candidates'])
