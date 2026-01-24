@@ -73,6 +73,9 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.msg_timer.setInterval(MESSAGE_BATCH_INTERVAL_MS)
         self.msg_timer.timeout.connect(self.flush_messages)
         self.msg_timer.start()
+        
+        # Re-apply theme after window is fully initialized
+        QTimer.singleShot(100, self.apply_theme)
 
         # Load scripts/plugins
         self.plugin_loader = PluginLoader(self)
@@ -113,12 +116,38 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         tree_bg, tree_fg = s.get("tree_bg", "#252526"), s.get("tree_fg", "#cccccc")
         nick_bg, nick_fg = s.get("nick_bg", "#252526"), s.get("nick_fg", "#cccccc")
         
+        # Clear any application palette so stylesheet can take effect
+        app = QApplication.instance()
+        if app:
+            app.setPalette(app.style().standardPalette())
+        
+        # DON'T SET ANY STYLESHEET - it overrides palettes!
+        # Just use palettes directly on widgets
+        
+        # Apply directly to widgets to force override
+        if hasattr(self, 'tree'):
+            palette = self.tree.palette()
+            palette.setColor(QPalette.Base, QColor(tree_bg))
+            palette.setColor(QPalette.Text, QColor(tree_fg))
+            palette.setColor(QPalette.Highlight, QColor(s.get('tree_sel_bg', '#E95420')))
+            palette.setColor(QPalette.HighlightedText, QColor(s.get('tree_sel_fg', '#ffffff')))
+            self.tree.setPalette(palette)
+            self.tree.setAutoFillBackground(True)
+            
+        if hasattr(self, 'nicks'):
+            palette = self.nicks.palette()
+            palette.setColor(QPalette.Base, QColor(nick_bg))
+            palette.setColor(QPalette.Text, QColor(nick_fg))
+            palette.setColor(QPalette.Highlight, QColor(s.get('nick_sel_bg', '#E95420')))
+            palette.setColor(QPalette.HighlightedText, QColor(s.get('nick_sel_fg', '#ffffff')))
+            self.nicks.setPalette(palette)
+            self.nicks.setAutoFillBackground(True)
+        
+        # Still apply stylesheet to OTHER widgets (chat, input, etc)
         style = f"""
             QMainWindow, QDialog {{ background-color: {bg}; color: {fg}; }}
             QTextBrowser {{ background-color: {bg}; color: {fg}; border: none; }}
             QPlainTextEdit {{ background-color: {s.get('input_bg', '#3c3c3c')}; color: {s.get('input_fg', '#ffffff')}; border: 1px solid {s.get('input_border', '#cccccc')}; }}
-            QTreeWidget {{ background-color: {tree_bg}; color: {tree_fg}; border: none; }}
-            QListWidget {{ background-color: {nick_bg}; color: {nick_fg}; border: none; }}
             QLabel#topic {{ background-color: {s.get('topic_bg', '#333333')}; color: {s.get('topic_fg', '#ffffff')}; padding: 4px; }}
             QSplitter::handle {{ background-color: {s.get('border_colour', '#cccccc')}; }}
         """
@@ -134,6 +163,7 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.tree.itemClicked.connect(self.on_tree_click)
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self.on_tree_context_menu)
+        self.tree.setAutoFillBackground(True)
         self.splitter.addWidget(self.tree)
 
         self.mid_container = QWidget()
@@ -166,6 +196,7 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.nicks.setFixedWidth(160)
         self.nicks.setContextMenuPolicy(Qt.CustomContextMenu)
         self.nicks.customContextMenuRequested.connect(self.on_nick_context_menu)
+        self.nicks.setAutoFillBackground(True)
         self.splitter.addWidget(self.nicks)
 
         self.layout.addWidget(self.splitter)
