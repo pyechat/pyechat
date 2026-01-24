@@ -98,7 +98,6 @@ class MainWindow(QMainWindow):
                 "ts_colour": "#888888",
                 "hl_bg": "rgba(255, 204, 0, 0.2)",
                 "hl_border": "#ffcc00",
-                "whois_colour": "#0000ff", # Standard HexChat Blue
                 # Tree/Network List
                 "tree_bg": "#f3f3f3",
                 "tree_fg": "#000000",
@@ -641,15 +640,8 @@ class MainWindow(QMainWindow):
 
         if "***" in msg and not self.settings.get("show_events", True): return
 
-        if target == "" and ("* [" in msg and "]" in msg):
-            # Try to extract the nick to see if it's a WHOIS-style message
             if self.current_nw == nw:
                 target = self.current_target
-            
-            # Apply customizable WHOIS color
-            whois_clr = self.settings.get("whois_colour")
-            if whois_clr and "fmt_color" not in tags:
-                tags["fmt_color"] = whois_clr
                 
         self.setup_buffer(nw, target)
         
