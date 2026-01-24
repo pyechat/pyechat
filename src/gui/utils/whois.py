@@ -9,7 +9,7 @@ def format_whois_to_irc(data):
     nick = data.get("nick", "unknown")
     
     if t == "user":
-        return f"\x0314Host mask:\x03 {data['user']}@{data['host']}\n\x0314Real name:\x03 {data['realname']}"
+        return f"\x0314Nickname:\x03 {nick}\n\x0314Host mask:\x03 {data['user']}@{data['host']}\n\x0314Real name:\x03 {data['realname']}"
     elif t == "server":
         return f"\x0314Connected to:\x03 {data['server']} ({data['info']})"
     elif t == "idle":
@@ -20,9 +20,9 @@ def format_whois_to_irc(data):
         seconds = idle_secs % 60
         idle_formatted = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         
-        msg = f"* [{nick}] idle {idle_formatted}"
+        msg = f"\x0314Idle since:\x03 {idle_formatted}"
         if data.get('signon'):
-            msg += f", signon: {data['signon']}"
+            msg += f", \x0314signon:\x03 {data['signon']}"
         return msg
     elif t == "status":
         return f"\x0314Registered nick:\x03 {data['info']}"
