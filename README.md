@@ -43,6 +43,7 @@ Join our official channels to get support, share ideas, or connect with the comm
 - 🎭 **Channel events** - Tracks JOIN, PART, QUIT, KICK, MODE, NICK changes
 - 📢 **NOTICE and ACTION support** - Proper handling of NOTICE messages and /me actions
 - 💾 **Persistent settings** - All preferences saved to JSON configuration
+- 🔌 **Plugin system** - Auto-loading Python scripts from `scripts/` directory for extensibility
 
 ## Project Structure
 ```
@@ -55,6 +56,9 @@ pyechat/
 │   ├── networks.json    # Network configurations
 │   └── settings.json    # User preferences
 ├── logs/                # Chat logs (per network/channel)
+├── scripts/             # User plugins (auto-loaded on startup)
+│   ├── example_script.py # Example plugin implementation
+│   └── README.md         # Plugin API documentation
 ├── src/                 # Source code
 │   ├── gui/             # GUI components
 │   │   ├── dialogs/     # Dialog windows
@@ -66,10 +70,12 @@ pyechat/
 │   │   │   ├── formatters.py     # IRC to HTML conversion
 │   │   │   └── whois.py          # WHOIS response formatting
 │   │   └── main_window.py        # Main application window (1000+ lines)
-│   └── irc/             # IRC protocol implementation
-│       ├── irc_client.py         # IRC client with full protocol support
-│       ├── logger.py             # Logging system
-│       └── whois.py              # WHOIS numeric code handling
+│   ├── irc/             # IRC protocol implementation
+│   │   ├── irc_client.py         # IRC client with full protocol support
+│   │   ├── logger.py             # Logging system
+│   │   └── whois.py              # WHOIS numeric code handling
+│   └── plugins/         # Plugin loader
+│       └── loader.py             # Dynamic script loading system
 ├── main.py              # Application entry point
 ├── setup.py             # Package configuration
 ├── requirements.txt     # Python dependencies
@@ -141,6 +147,39 @@ PyeChat supports standard IRC commands:
 - `/whois <nick>` - Get user information
 - `/quit [message]` - Disconnect with optional quit message
 - `/raw <command>` or `/quote <command>` - Send raw IRC command
+
+### Plugin System
+
+PyeChat supports Python plugins that auto-load from the `scripts/` directory on startup. Plugins can:
+- Hook into IRC events (messages, joins, parts, etc.)
+- Access the main window and all IRC clients
+- Add custom functionality without modifying core code
+
+**Creating a plugin:**
+1. Create a `.py` file in the `scripts/` directory
+2. Implement a `setup(main_window)` function
+3. Connect to signals or add custom functionality
+4. Optional: Implement `teardown()` for cleanup
+
+**Example:**
+```python
+def setup(main_window):
+    """Called when plugin loads"""
+    def on_message(network, target, sender, message):
+        if "hello" in message.lower():
+            print(f"[{network}] {sender} said hello in {target}!")
+    
+    for client in main_window.clients.values():
+        client.message_received.connect(on_message)
+    
+    print("My plugin loaded!")
+
+def teardown():
+    """Optional cleanup when plugin unloads"""
+    print("My plugin unloaded!")
+```
+
+See `scripts/README.md` for full API documentation.
 
 ## Configuration
 
@@ -243,9 +282,8 @@ To contribute:
 ## Known Issues
 
 - No DCC file transfer support (yet)
-- No plugin system (planned)
 - Self-signed SSL certificates are auto-accepted
-- **OpenSSL Compatibility**: PyQt5 from pip may not support SSL on systems with OpenSSL 3.x. Use system packages for full SSL/TLS support.
+- **OpenSSL Compatibility**: For best SSL/TLS support on systems with OpenSSL 3.x, use system PyQt5 packages (`sudo apt install python3-pyqt5`)
 
 ## License
 
