@@ -114,6 +114,7 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         
         style = f"""
             QMainWindow, QDialog {{ background-color: {bg}; color: {fg}; }}
+            QTextBrowser {{ background-color: {bg}; color: {fg}; border: none; }}
             QPlainTextEdit {{ background-color: {s.get('input_bg', '#3c3c3c')}; color: {s.get('input_fg', '#ffffff')}; border: 1px solid {s.get('input_border', '#cccccc')}; }}
             QTreeWidget {{ background-color: {tree_bg}; color: {tree_fg}; border: none; }}
             QListWidget {{ background-color: {nick_bg}; color: {nick_fg}; border: none; }}

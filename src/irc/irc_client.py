@@ -26,8 +26,10 @@ class IRCClient(QObject):
         self.socket = QSslSocket()
         self.socket.readyRead.connect(self.on_ready_read)
         self.socket.errorOccurred.connect(self.on_error_occurred)
-        self.socket.connected.connect(self.start_encryption)
-        self.socket.encrypted.connect(self.on_socket_connected)
+        if use_ssl:
+            self.socket.encrypted.connect(self.on_socket_connected)
+        else:
+            self.socket.connected.connect(self.on_socket_connected)
         self.socket.disconnected.connect(self.on_disconnected)
         self.socket.sslErrors.connect(self.on_ssl_errors)
         
@@ -59,10 +61,6 @@ class IRCClient(QObject):
         self.reconnect_timer.timeout.connect(self.connect_to_host)
         
         self.logger = Logger('logs/irc_client.log')
-
-    def start_encryption(self):
-        if self.use_ssl: self.socket.startClientEncryption()
-        else: self.on_socket_connected()
 
     def on_socket_connected(self):
         self.reconnect_timer.stop()
