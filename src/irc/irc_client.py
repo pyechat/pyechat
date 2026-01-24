@@ -229,16 +229,18 @@ class IRCClient(QObject):
 
             elif command.isdigit():
                 try:
+            elif command.isdigit():
+                try:
                     # Specialized numeric handling for WHOIS and others
                     if command == '311': # WHOIS User
                         nick, user, host, real = args[1], args[2], args[3], args[5]
-                        self.received_message.emit("", f"\x0312* [{nick}]\x03 \x0307({user}@{host})\x03: \x0312{real}\x03", tags)
+                        self.received_message.emit("", f"\x0312* [{nick}] ({user}@{host}): {real}\x03", tags)
                     elif command == '312': # WHOIS Server
                         nick, srv, info = args[1], args[2], args[3]
                         self.received_message.emit("", f"\x0312* [{nick}]\x03 \x0304{srv}\x03 \x0312:{info}\x03", tags)
                     elif command == '317': # WHOIS Idle/Signon
                         nick, idle = args[1], int(args[2])
-                        msg = f"\x0312* [{nick}]\x03 idle {idle}s"
+                        msg = f"\x0312* [{nick}] idle {idle}s"
                         if len(args) > 3:
                             try:
                                 ts = int(args[3])
@@ -246,51 +248,46 @@ class IRCClient(QObject):
                                     signon = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
                                     msg += f", signed on at {signon}"
                             except: pass
-                        self.received_message.emit("", msg, tags)
+                        self.received_message.emit("", msg + "\x03", tags)
                     elif command in ['307', '320']: # Registered / Status
                         nick = args[1]
-                        info = args[2] if len(args) > 2 else "is a registered nick"
-                        self.received_message.emit("", f"\x0312* [{nick}]\x03 {info}", tags)
+                        info = args[2] if len(args) > 2 else "has identified for this nick"
+                        self.received_message.emit("", f"\x0312* [{nick}] {info}\x03", tags)
                     elif command in ['335', '310']: # Bot / HelpOp
                         nick = args[1]
                         info = args[2] if len(args) > 2 else "is a bot"
-                        self.received_message.emit("", f"\x0312* [{nick}]\x03 {info}", tags)
+                        self.received_message.emit("", f"\x0312* [{nick}] {info}\x03", tags)
                     elif command == '319': # WHOIS Channels
                         nick, chans = args[1], args[2]
-                        # Colorize channel names in red
-                        chans_fmt = ""
-                        for part in chans.split():
-                            if part.startswith('#'): chans_fmt += f" \x0304{part}\x03"
-                            else: chans_fmt += f" {part}"
-                        self.received_message.emit("", f"\x0312* [{nick}]\x03{chans_fmt}", tags)
+                        self.received_message.emit("", f"\x0312* [{nick}] {chans}\x03", tags)
                     elif command == '330': # WHOIS Logged In
                         nick, account, info = args[1], args[2], args[3] if len(args) > 3 else "is logged in as"
-                        self.received_message.emit("", f"\x0312* [{nick}]\x03 {info} {account}", tags)
+                        self.received_message.emit("", f"\x0312* [{nick}] {info} {account}\x03", tags)
                     elif command == '301': # AWAY
                         nick, msg = args[1], args[2]
-                        self.received_message.emit("", f"\x0312* [{nick}]\x03 is away: {msg}", tags)
+                        self.received_message.emit("", f"\x0312* [{nick}] is away: {msg}\x03", tags)
                     elif command == '313': # WHOIS IRCop
                         nick, priv = args[1], args[2]
-                        self.received_message.emit("", f"\x0312* [{nick}]\x03 {priv}", tags)
+                        self.received_message.emit("", f"\x0312* [{nick}] {priv}\x03", tags)
                     elif command in ['378', '338']: # WHOIS IP/Host (Real)
                         nick, info = args[1], args[2] if len(args) > 2 else args[-1]
-                        self.received_message.emit("", f"\x0312* [{nick}]\x03 {info}", tags)
+                        self.received_message.emit("", f"\x0312* [{nick}] {info}\x03", tags)
                     elif command == '379': # WHOIS Modes
                         nick, modes = args[1], " ".join(args[2:])
-                        self.received_message.emit("", f"\x0312* [{nick}]\x03 {modes}", tags)
+                        self.received_message.emit("", f"\x0312* [{nick}] {modes}\x03", tags)
                     elif command == '275': # WHOIS SSL Cert Fingerprint
                         nick, fingerprint = args[1], args[2]
-                        self.received_message.emit("", f"\x0312* [{nick}]\x03 SSL Fingerprint: {fingerprint}", tags)
+                        self.received_message.emit("", f"\x0312* [{nick}] SSL Fingerprint: {fingerprint}\x03", tags)
                     elif command in ['671', '276']: # WHOIS SSL/TLS / Secure
                         nick = args[1]
                         info = args[2] if len(args) > 2 else "is using a secure connection"
-                        self.received_message.emit("", f"\x0312* [{nick}]\x03 {info}", tags)
+                        self.received_message.emit("", f"\x0312* [{nick}] {info}\x03", tags)
                     elif command == '344': # WHOIS Country
                         nick, country = args[1], args[2]
-                        self.received_message.emit("", f"\x0312* [{nick}]\x03 is connecting from {country}", tags)
+                        self.received_message.emit("", f"\x0312* [{nick}] is connecting from {country}\x03", tags)
                     elif command == '318': # End of WHOIS
                         nick = args[1]
-                        self.received_message.emit("", f"\x0312* [{nick}]\x03 End of WHOIS list.", tags)
+                        self.received_message.emit("", f"\x0312* [{nick}] End of WHOIS list.\x03", tags)
                     elif command not in ['332', '353']:
                         # Generic numeric handling
                         text = " ".join(args[1:]) if len(args) > 1 else (args[0] if args else "")
