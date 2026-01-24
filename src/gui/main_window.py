@@ -605,7 +605,8 @@ class MainWindow(QMainWindow):
                     "white": "\x0300", "black": "\x0301", "blue": "\x0302", "green": "\x0303",
                     "red": "\x0304", "brown": "\x0305", "purple": "\x0306", "orange": "\x0307",
                     "yellow": "\x0308", "teal": "\x0310", "cyan": "\x0311", "light_blue": "\x0312",
-                    "pink": "\x0313", "grey": "\x0314", "plain": "\x0f", "c23": "\x0323"
+                    "pink": "\x0313", "grey": "\x0314", "plain": "\x0f", "c23": "\x0323",
+                    "n": sender, "h": host, "c": target, "m": args[-1] if args else ""
                 }
                 msg = fmt.format(**ctx)
                 
