@@ -33,7 +33,7 @@ def irc_to_html(text):
     
     # Pre-parse HexChat style escapes to IRC control codes for unified handling
     # %Cnn -> \x03nn, %B -> \x02, %I -> \x1D, %U -> \x1F, %O -> \x0F
-    text = re.sub(r'%C(\d{1,2})', r'\x03\1', text)
+    text = re.sub(r'%C(\d{1,2})', lambda m: '\x03' + m.group(1), text)
     text = text.replace('%B', '\x02').replace('%I', '\x1D').replace('%U', '\x1F').replace('%O', '\x0F')
 
     text = html.escape(text)
