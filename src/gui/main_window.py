@@ -1,4 +1,4 @@
-"""Main window for PyeChat IRC client."""
+"""Main window for PyeChat."""
 import os
 import json
 import datetime
@@ -82,9 +82,8 @@ class MainWindow(QMainWindow, EventHandlerMixin):
                 if v == "#3584E4" or v == "#3584e4": self.settings[k] = "#E95420"
         except (FileNotFoundError, json.JSONDecodeError):
             from src.gui.dialogs.settings import SettingsDialogue
-            # Fallback to defaults defined in SettingsDialogue
             temp = SettingsDialogue(None, {})
-            self.settings = temp.get_default_events_v2() # This is just a stub for now
+            self.settings = temp.get_default_events_v2()
 
     def save_settings(self):
         settings_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'settings.json'))
@@ -235,10 +234,10 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.topic.setToolTip(buf["topic"] or target)
         self.render_nick_list()
         
-        msg = f"<b>NW:</b> {nw}"
-        if nw in self.clients: msg += f" | <b>Nick:</b> {self.clients[nw].nickname}"
-        if target: msg += f" | <b>Buf:</b> {target}"
-        self.statusBar().showMessage(msg.replace("<b>", "").replace("</b>", ""))
+        msg = f"NW: {nw}"
+        if nw in self.clients: msg += f" | Nick: {self.clients[nw].nickname}"
+        if target: msg += f" | Buf: {target}"
+        self.statusBar().showMessage(msg)
 
     def on_tree_click(self, item, col):
         p = item.parent()

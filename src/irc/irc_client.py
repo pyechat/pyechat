@@ -3,23 +3,24 @@ from PyQt5.QtNetwork import QSslSocket
 from src.irc.logger import Logger
 import base64
 from src.irc.whois import parse_whois_numeric
+import datetime
 
 class IRCClient(QObject):
-    received_message = pyqtSignal(str, str, dict) # target, message, tags
-    received_nick_list = pyqtSignal(tuple)  # (channel, nick)
-    received_topic = pyqtSignal(str, str)   # channel, topic
-    connected_to_server = pyqtSignal(str)   # network_name
-    disconnected_from_server = pyqtSignal(str) # network_name
-    parted_channel = pyqtSignal(str, str)   # channel, nick
-    nick_changed = pyqtSignal(str, str)     # old, new
-    received_kick = pyqtSignal(str, str, str, str) # channel, kicked_nick, kicker, reason
-    received_mode = pyqtSignal(str, str, str)      # channel, sender, mode_string
-    received_notice = pyqtSignal(str, str, str)    # target, sender, message
-    received_invite = pyqtSignal(str, str, str)    # channel, sender, invited_nick
-    received_action = pyqtSignal(str, str, str)    # target, sender, message
-    received_quit = pyqtSignal(str, str)          # nick, reason
-    received_whois = pyqtSignal(dict, dict)       # data, tags
-    event_received = pyqtSignal(str, str, list, dict) # command, sender, args, tags
+    received_message = pyqtSignal(str, str, dict)
+    received_nick_list = pyqtSignal(tuple)
+    received_topic = pyqtSignal(str, str)
+    connected_to_server = pyqtSignal(str)
+    disconnected_from_server = pyqtSignal(str)
+    parted_channel = pyqtSignal(str, str)
+    nick_changed = pyqtSignal(str, str)
+    received_kick = pyqtSignal(str, str, str, str)
+    received_mode = pyqtSignal(str, str, str)
+    received_notice = pyqtSignal(str, str, str)
+    received_invite = pyqtSignal(str, str, str)
+    received_action = pyqtSignal(str, str, str)
+    received_quit = pyqtSignal(str, str)
+    received_whois = pyqtSignal(dict, dict)
+    event_received = pyqtSignal(str, str, list, dict)
 
     def __init__(self, network_name, server, port, nickname, realname, auto_join_channels=None, use_ssl=False, password=None, auto_reconnect=True, sasl_method=None, sasl_user=None, sasl_pass=None, auto_commands=None):
         super().__init__()
@@ -40,7 +41,7 @@ class IRCClient(QObject):
         self.use_ssl = use_ssl
         self.password = password
         self.auto_reconnect = auto_reconnect
-        self.sasl_method = sasl_method # None, "PLAIN", "EXTERNAL"
+        self.sasl_method = sasl_method
         self.sasl_user = sasl_user
         self.sasl_pass = sasl_pass
         self.auto_commands = auto_commands or []
@@ -138,9 +139,10 @@ class IRCClient(QObject):
                     tags['host'] = source.split('!', 1)[1]
                 else:
                     sender = source
-            # Emit generic event for dynamic handling in UI
-            self.event_received.emit(command, sender, args, tags)
 
+            if command != 'PRIVMSG' and not command.isdigit():
+                self.event_received.emit(command, sender, args, tags)
+            
             if command == 'PING':
                 self.send_command(f'PONG :{args[0]}')
             
@@ -168,11 +170,11 @@ class IRCClient(QObject):
                     elif self.sasl_method == 'EXTERNAL':
                         self.send_command('AUTHENTICATE +')
             
-            elif command == '903': # SASL Successful
+            elif command == '903':
                 self.received_message.emit("", "*** SASL authentication successful", tags)
                 self.send_command('CAP END')
             
-            elif command in ['904', '905', '907']: # SASL Failed
+            elif command in ['904', '905', '907']:
                 self.received_message.emit("", f"*** SASL authentication failed ({command})", tags)
                 self.send_command('CAP END')
 
@@ -181,7 +183,6 @@ class IRCClient(QObject):
                 self.nickname = args[0]
                 self.received_message.emit("", f"*** Connected to {self.server}", tags)
                 self.connected_to_server.emit(self.network_name)
-                # Auto-Commands (Perform)
                 for cmd in self.auto_commands: self.send_command(cmd)
                 for chan in self.auto_join_channels: self.send_command(f'JOIN {chan}')
 
@@ -226,10 +227,10 @@ class IRCClient(QObject):
                 chan, mode = args[0], " ".join(args[1:])
                 self.received_mode.emit(chan, sender, mode)
 
-            elif command == '332': # Topic
+            elif command == '332':
                 self.received_topic.emit(args[1], args[2])
 
-            elif command == '353': # NAMES list
+            elif command == '353':
                 chan = args[2]
                 for n in args[3].split():
                     self.received_nick_list.emit((chan, n))
@@ -240,11 +241,9 @@ class IRCClient(QObject):
                     if whois_data:
                         self.received_whois.emit(whois_data, tags)
                     
-                    # Always emit event for custom numeric formatting
                     self.event_received.emit(command, sender, args, tags)
                     
-                    # Fallback display if no custom event is defined AND not a WHOIS numeric
-                    if not whois_data and command not in ['332', '353']:
+                    if not whois_data and command not in ['332', '353', '001']:
                         text = " ".join(args[1:]) if len(args) > 1 else (args[0] if args else "")
                         self.received_message.emit("", f"[{command}] {text}", tags)
                 except Exception:
@@ -278,7 +277,6 @@ class IRCClient(QObject):
     def on_ssl_errors(self, errors):
         for err in errors:
             self.logger.warning(f"SSL Error: {err.errorString()}")
-        # Many IRC servers use self-signed certs; it's common to ignore these in IRC clients
         self.socket.ignoreSslErrors()
 
     @pyqtSlot(QSslSocket.SocketError)

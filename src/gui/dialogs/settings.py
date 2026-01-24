@@ -1,4 +1,4 @@
-"""Settings dialog for PyeChat."""
+"""Settings dialogue."""
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, 
                              QWidget, QTabWidget, QCheckBox, QLineEdit, QComboBox,
                              QGroupBox, QLabel, QTableWidget, QTableWidgetItem,
@@ -71,7 +71,6 @@ class SettingsDialogue(QDialog):
         self.event_table.itemSelectionChanged.connect(self.update_event_legend)
         
         evs = self.settings.get("events_v2", self.get_default_events_v2())
-        # Use human names if we have them, else raw command
         human_names = self.get_event_name_map()
         for cmd, data in evs.items():
             name = human_names.get(cmd, cmd)
@@ -80,7 +79,6 @@ class SettingsDialogue(QDialog):
         
         layout.addWidget(self.event_table)
         
-        # Legend Area
         self.legend_group = QGroupBox("Variable Descriptions")
         legend_layout = QVBoxLayout(self.legend_group)
         self.legend_label = QLabel("Select an event to see variable mappings.")
@@ -175,7 +173,7 @@ class SettingsDialogue(QDialog):
         row = self.event_table.rowCount()
         self.event_table.insertRow(row)
         item_name = QTableWidgetItem(name)
-        item_name.setData(Qt.UserRole, cmd) # Store raw command
+        item_name.setData(Qt.UserRole, cmd)
         self.event_table.setItem(row, 0, item_name)
         self.event_table.setItem(row, 1, QTableWidgetItem(fmt))
 
@@ -278,7 +276,7 @@ class SettingsDialogue(QDialog):
 
     def pick_colour(self, key, btn):
         current = QColor(self.settings.get(key, "#ffffff"))
-        clr = QColorDialog.getColor(current, self, "Pick color", QColorDialog.DontUseNativeDialog)
+        clr = QColorDialog.getColor(current, self, "Pick colour", QColorDialog.DontUseNativeDialog)
         if clr.isValid():
             self.settings[key] = clr.name()
             self.update_button_swatch(btn, key)
