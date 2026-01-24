@@ -16,6 +16,7 @@ from src.gui.dialogs.network_list import NetworkListDialogue
 from src.gui.dialogs.settings import SettingsDialogue
 from src.gui.components.chat_input import ChatInput
 from src.gui.mixins.event_handlers import EventHandlerMixin
+from src.plugins.loader import PluginLoader
 
 DEFAULT_WINDOW_X = 100
 DEFAULT_WINDOW_Y = 100
@@ -70,6 +71,10 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.msg_timer.setInterval(MESSAGE_BATCH_INTERVAL_MS)
         self.msg_timer.timeout.connect(self.flush_messages)
         self.msg_timer.start()
+
+        # Load scripts/plugins
+        self.plugin_loader = PluginLoader(self)
+        QTimer.singleShot(500, self.plugin_loader.load_all)
 
         if not self.settings.get("skip_network_list", False):
             QTimer.singleShot(NETWORK_LIST_DELAY_MS, self.openNetworkListDialogue)
