@@ -591,6 +591,9 @@ class MainWindow(QMainWindow):
             target = "" # Status or current
             chan = args[1]
             evt_args = [chan, sender]
+        elif command.isdigit():
+            # For numerics, skip the first arg (which is our own nick)
+            evt_args = args[1:] if len(args) > 1 else args
         
         try:
             # Use HexChat formatter if $ is present, else fallback to str.format
