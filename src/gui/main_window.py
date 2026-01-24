@@ -2,6 +2,8 @@
 import os
 import json
 import datetime
+import subprocess
+import shlex
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, 
                              QListWidget, QTextBrowser, QLabel, QMenu, 
                              QTreeWidget, QTreeWidgetItem, QApplication, 
@@ -341,6 +343,66 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         it = self.tree_items.pop((nw, target), None)
         if it and it.parent(): it.parent().removeChild(it)
 
+    def handle_exec_command(self, args):
+        """Handle /exec command - execute shell commands and display output."""
+        if not args:
+            self.on_message(self.current_nw, self.current_target or "", "Usage: /exec [-o] <command>")
+            return
+        
+        # Parse flags
+        send_to_channel = False
+        command = args
+        
+        if args.startswith('-o '):
+            send_to_channel = True
+            command = args[3:]
+        elif args.startswith('-o'):
+            send_to_channel = True
+            command = args[2:].lstrip()
+        
+        if not command:
+            self.on_message(self.current_nw, self.current_target or "", "Usage: /exec [-o] <command>")
+            return
+        
+        try:
+            # Execute command
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            output = result.stdout.strip()
+            if result.stderr:
+                output += "\n" + result.stderr.strip()
+            
+            if not output:
+                output = f"Command completed (exit code: {result.returncode})"
+            
+            # Split output into lines
+            lines = output.split('\n')
+            
+            if send_to_channel and self.current_target and self.current_nw in self.clients:
+                # Send each line to channel
+                c = self.clients[self.current_nw]
+                for line in lines:
+                    if line:
+                        c.send_command(f"PRIVMSG {self.current_target} :{line}")
+                        self.on_message(self.current_nw, self.current_target, f"<{c.nickname}> {line}")
+            else:
+                # Display locally
+                target = self.current_target or ""
+                for line in lines:
+                    if line:
+                        self.on_message(self.current_nw, target, f"[exec] {line}")
+        
+        except subprocess.TimeoutExpired:
+            self.on_message(self.current_nw, self.current_target or "", "[exec] Error: Command timed out (10s limit)")
+        except Exception as e:
+            self.on_message(self.current_nw, self.current_target or "", f"[exec] Error: {str(e)}")
+
     def on_send(self):
         txt = self.input.toPlainText().strip()
         if not txt or not self.current_nw or self.current_nw not in self.clients: return
@@ -349,6 +411,7 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             parts = txt[1:].split(' ', 1)
             cmd, args = parts[0].upper(), parts[1] if len(parts) > 1 else ""
             if cmd == "JOIN": c.send_command(f"JOIN {args}")
+            elif cmd == "EXEC": self.handle_exec_command(args)
             elif cmd in ["MSG", "QUERY"]:
                 m_parts = args.split(' ', 1)
                 if len(m_parts) == 2:
