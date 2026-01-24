@@ -47,7 +47,7 @@ class IRCClient(QObject):
         self.auto_commands = auto_commands or []
         
         self.is_registered = False
-        self.capabilities = ["server-time", "multi-prefix", "away-notify", "account-notify", "extended-join"]
+        self.capabilities = ["server-time", "multi-prefix", "away-notify", "account-notify", "extended-join", "znc.in/self-message"]
         if self.sasl_method:
             self.capabilities.append("sasl")
 
