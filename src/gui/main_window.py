@@ -548,6 +548,7 @@ class MainWindow(QMainWindow):
         host = tags.get('host', '')
         evt_args = []
         target = ""
+        mode_str = ""
 
         if command == "JOIN":
             target = args[0]
@@ -591,11 +592,20 @@ class MainWindow(QMainWindow):
             if '$' in fmt:
                 msg = format_text_event(fmt, evt_args)
             else:
-                # Compatibility with old {} format
+                # Compatibility with old {} format - restore all expected keys
                 ctx = {
                     "nick": sender, "sender": sender, "host": host,
                     "channel": target, "target": target,
-                    "msg": args[-1] if args else "", "reason": args[-1] if args else ""
+                    "msg": args[-1] if args else "", "reason": args[-1] if args else "",
+                    "mode": mode_str if command == "MODE" else "",
+                    "kicker": sender if command == "KICK" else "",
+                    "old_nick": sender if command == "NICK" else "",
+                    "new_nick": args[0] if command == "NICK" else "",
+                    # Colors
+                    "white": "\x0300", "black": "\x0301", "blue": "\x0302", "green": "\x0303",
+                    "red": "\x0304", "brown": "\x0305", "purple": "\x0306", "orange": "\x0307",
+                    "yellow": "\x0308", "teal": "\x0310", "cyan": "\x0311", "light_blue": "\x0312",
+                    "pink": "\x0313", "grey": "\x0314", "plain": "\x0f", "c23": "\x0323"
                 }
                 msg = fmt.format(**ctx)
                 
