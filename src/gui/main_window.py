@@ -909,7 +909,10 @@ class MainWindow(QMainWindow):
         # Fall back to hardcoded formatting
         msg = format_whois_to_irc(data)
         if msg:
-            self.on_message(nw, "", msg, tags)
+            # Split multi-line messages so each gets its own timestamp
+            for line in msg.split('\n'):
+                if line.strip():
+                    self.on_message(nw, "", line, tags)
     
     def on_mode(self, nw, chan, sender, mode):
         """Handle MODE changes for ranks (@, +, etc.)."""
