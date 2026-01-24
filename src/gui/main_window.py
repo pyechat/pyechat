@@ -134,6 +134,8 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             palette.setColor(QPalette.HighlightedText, QColor(s.get('tree_sel_fg', '#ffffff')))
             self.tree.setPalette(palette)
             self.tree.setAutoFillBackground(True)
+            # Also set stylesheet directly on widget as backup
+            self.tree.setStyleSheet(f"QTreeWidget {{ background-color: {tree_bg}; color: {tree_fg}; border: none; }} QTreeWidget::item {{ color: {tree_fg}; }} QTreeWidget::item:selected {{ background-color: {s.get('tree_sel_bg', '#E95420')}; color: {s.get('tree_sel_fg', '#ffffff')}; }}")
             print(f"Applied tree palette: bg={tree_bg}, fg={tree_fg}")
             
         if hasattr(self, 'nicks'):
@@ -145,6 +147,8 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             palette.setColor(QPalette.HighlightedText, QColor(s.get('nick_sel_fg', '#ffffff')))
             self.nicks.setPalette(palette)
             self.nicks.setAutoFillBackground(True)
+            # Also set stylesheet directly on widget as backup
+            self.nicks.setStyleSheet(f"QListWidget {{ background-color: {nick_bg}; color: {nick_fg}; border: none; }} QListWidget::item {{ color: {nick_fg}; }} QListWidget::item:selected {{ background-color: {s.get('nick_sel_bg', '#E95420')}; color: {s.get('nick_sel_fg', '#ffffff')}; }}")
             print(f"Applied nicks palette: bg={nick_bg}, fg={nick_fg}")
         
         # Still apply stylesheet to OTHER widgets (chat, input, etc)
