@@ -1,6 +1,6 @@
 # PyeChat - A Modern PyQt5 IRC Client
 
-PyeChat is a modern, user-friendly IRC client built with PyQt5. It's inspired by the design and functionality of [HexChat](https://hexchat.github.io/).
+PyeChat is a feature-rich, modern IRC client built with PyQt5, inspired by [HexChat](https://hexchat.github.io/). With support for multi-network connections, extensive theming, and a powerful plugin system, PyeChat delivers a comfortable and customizable IRC experience.
 
 ## Official Channels
 Join our official channels to get support, share ideas, or connect with the community:
@@ -11,7 +11,7 @@ Join our official channels to get support, share ideas, or connect with the comm
 
 ### Core IRC Features
 - 🌐 **Multi-network support** - Connect to multiple IRC networks simultaneously
-- 🔒 **SSL/TLS support** - Secure connections with SSL/TLS encryption
+- 🔒 **SSL/TLS support** - Secure connections with SSL/TLS encryption (OpenSSL 3.x compatible)
 - 🔑 **SASL authentication** - PLAIN and EXTERNAL methods supported
 - 🚀 **IRCv3 capabilities** - server-time, multi-prefix, away-notify, account-notify, extended-join
 - 🤖 **Auto-reconnect** - Automatic reconnection with configurable retry
@@ -19,23 +19,26 @@ Join our official channels to get support, share ideas, or connect with the comm
 - 🔔 **CTCP support** - Responds to VERSION, PING, TIME requests
 
 ### User Interface
-- 🎨 **Customizable themes** - Full color customization with light/dark mode support
+- 🎨 **7 Built-in Themes** - Dark (Default), Dracula, Monokai, Solarized Dark, Nord, Gruvbox Dark, and Light
 - 🌈 **Nick coloring** - Deterministic nick colors based on username
 - ⭐ **Activity tracking** - Highlights channels with new messages or mentions
-- 💬 **Message batching** - Optimized rendering for performance
+- 💬 **Message batching** - Optimized rendering for high-traffic channels (100ms batching, 500 msg/batch)
 - 📊 **Real-time nick list** - Shows users with proper rank symbols (@, +, etc.)
-- 🔍 **WHOIS formatting** - Enhanced, colorized WHOIS responses
+- 🔍 **Enhanced WHOIS** - Colorized, formatted WHOIS responses
 - 📋 **Context menus** - Right-click menus for channels and users
 - 🎯 **Highlight mentions** - Visual highlighting when your nick is mentioned
+- 🎭 **Customizable appearance** - Full color control for every UI element
 
 ### Message Formatting
 - **Bold**, *italic*, <u>underline</u> text support
 - 🎨 **mIRC color codes** - Full 16-color palette
-- 🔗 **URL detection** - Auto-linkifies HTTP(S) URLs
+- 🔗 **URL detection** - Auto-linkifies HTTP(S) URLs (clickable links)
 - 💬 **IRC formatting to HTML** - Converts IRC codes to rich HTML display
 - ✨ **Custom event formatting** - Customize JOIN, PART, KICK, MODE messages with colors
 
 ### Advanced Features
+- 🔌 **Plugin system** - Auto-loading for both Python (.py) and TCL (.tcl) scripts
+- ⚡ **Shell command execution** - `/exec` command for running shell commands (with `-o` flag for channel output)
 - ⌨️ **Tab completion** - Intelligent nick and channel name completion with cycling
 - 📝 **Chat logging** - Automatic logging to disk (per-network, per-channel)
 - 🔄 **Smart input box** - Auto-expanding input (30-85px) with Shift+Enter for newlines
@@ -43,7 +46,6 @@ Join our official channels to get support, share ideas, or connect with the comm
 - 🎭 **Channel events** - Tracks JOIN, PART, QUIT, KICK, MODE, NICK changes
 - 📢 **NOTICE and ACTION support** - Proper handling of NOTICE messages and /me actions
 - 💾 **Persistent settings** - All preferences saved to JSON configuration
-- 🔌 **Plugin system** - Auto-loading Python scripts from `scripts/` directory for extensibility
 
 ## Project Structure
 ```
@@ -57,8 +59,9 @@ pyechat/
 │   └── settings.json    # User preferences
 ├── logs/                # Chat logs (per network/channel)
 ├── scripts/             # User plugins (auto-loaded on startup)
-│   ├── example_script.py # Example plugin implementation
-│   └── README.md         # Plugin API documentation
+│   ├── example_script.py  # Example Python plugin implementation
+│   ├── example_script.tcl # Example TCL plugin implementation
+│   └── README.md          # Plugin API documentation
 ├── src/                 # Source code
 │   ├── gui/             # GUI components
 │   │   ├── dialogs/     # Dialog windows
@@ -68,6 +71,7 @@ pyechat/
 │   │   ├── utils/       # GUI utilities
 │   │   │   ├── colors.py         # Nick color generation
 │   │   │   ├── formatters.py     # IRC to HTML conversion
+│   │   │   ├── themes.py         # Theme presets (7 built-in themes)
 │   │   │   └── whois.py          # WHOIS response formatting
 │   │   └── main_window.py        # Main application window (1000+ lines)
 │   ├── irc/             # IRC protocol implementation
@@ -75,7 +79,7 @@ pyechat/
 │   │   ├── logger.py             # Logging system
 │   │   └── whois.py              # WHOIS numeric code handling
 │   └── plugins/         # Plugin loader
-│       └── loader.py             # Dynamic script loading system
+│       └── loader.py             # Auto-loads .py and .tcl scripts
 ├── main.py              # Application entry point
 ├── setup.py             # Package configuration
 ├── requirements.txt     # Python dependencies
@@ -152,21 +156,78 @@ PyeChat supports standard IRC commands:
 - `/whois <nick>` - Get user information
 - `/quit [message]` - Disconnect with optional quit message
 - `/raw <command>` or `/quote <command>` - Send raw IRC command
+- `/exec [-o] <command>` - Execute shell command (use `-o` to send output to current channel)
+
+### Theme System
+
+PyeChat includes 7 professionally designed themes with optimized contrast and readability:
+
+#### Dark (Default)
+Classic dark theme with charcoal backgrounds and high-contrast text. Features Ubuntu Orange highlights.
+- Background: `#1e1e1e` (Charcoal)
+- Foreground: `#e0e0e0` (Light Gray)
+- Highlight: `#E95420` (Ubuntu Orange)
+
+#### Dracula
+Popular vampire-themed palette with purple tones and vibrant accents.
+- Background: `#282a36` (Dark Purple)
+- Foreground: `#f8f8f2` (Off-White)
+- Highlight: `#ff79c6` (Pink)
+
+#### Monokai
+Warm dark theme inspired by Sublime Text's default color scheme.
+- Background: `#272822` (Dark Brown)
+- Foreground: `#f8f8f2` (Off-White)
+- Highlight: `#f92672` (Hot Pink)
+
+#### Solarized Dark
+Precision-designed dark theme with reduced brightness contrast for eye comfort.
+- Background: `#002b36` (Deep Blue)
+- Foreground: `#839496` (Gray-Blue)
+- Highlight: `#268bd2` (Blue)
+
+#### Nord
+Arctic, north-bluish color palette with calm, smooth colors.
+- Background: `#2e3440` (Dark Slate)
+- Foreground: `#d8dee9` (Snow White)
+- Highlight: `#88c0d0` (Frost Blue)
+
+#### Gruvbox Dark
+Retro groove theme with warm, earthy tones.
+- Background: `#282828` (Dark Brown)
+- Foreground: `#ebdbb2` (Cream)
+- Highlight: `#fb4934` (Red)
+
+#### Light
+Clean light theme for well-lit environments, GitHub-inspired.
+- Background: `#ffffff` (White)
+- Foreground: `#24292e` (Dark Gray)
+- Highlight: `#0366d6` (Blue)
+
+**Switching Themes:**
+1. Open Settings (PyeChat → Settings)
+2. Go to Appearance tab
+3. Select a preset from the dropdown
+4. Click "Apply Preset"
+5. Changes take effect immediately
+
+You can also fully customize any theme by adjusting individual color settings.
 
 ### Plugin System
 
-PyeChat supports Python plugins that auto-load from the `scripts/` directory on startup. Plugins can:
-- Hook into IRC events (messages, joins, parts, etc.)
-- Access the main window and all IRC clients
-- Add custom functionality without modifying core code
+PyeChat features a powerful plugin system that auto-loads scripts from the `scripts/` directory on startup. Both Python and TCL scripts are supported!
 
-**Creating a plugin:**
+#### Python Plugins
+
+Python plugins can hook into IRC events, access the main window, and extend functionality.
+
+**Creating a Python plugin:**
 1. Create a `.py` file in the `scripts/` directory
 2. Implement a `setup(main_window)` function
 3. Connect to signals or add custom functionality
 4. Optional: Implement `teardown()` for cleanup
 
-**Example:**
+**Example Python plugin:**
 ```python
 def setup(main_window):
     """Called when plugin loads"""
@@ -184,7 +245,42 @@ def teardown():
     print("My plugin unloaded!")
 ```
 
-See `scripts/README.md` for full API documentation.
+#### TCL Plugins
+
+TCL plugins provide a familiar scripting environment similar to other IRC clients like Eggdrop.
+
+**Creating a TCL plugin:**
+1. Install TCL support: `sudo apt install python3-tk`
+2. Create a `.tcl` file in the `scripts/` directory
+3. Use built-in commands: `pyechat_log`, `pyechat_send`
+
+**Example TCL plugin:**
+```tcl
+# Example TCL script for PyeChat
+proc greet {nick} {
+    pyechat_log "Hello from TCL, $nick!"
+}
+
+# Call the procedure
+greet "world"
+
+# You can also send IRC commands
+# pyechat_send "network_name" "/msg #channel Hello from TCL!"
+```
+
+**Available TCL Commands:**
+- `pyechat_log <message>` - Log a message to stdout
+- `pyechat_send <network> <command>` - Send IRC command to network
+
+**Plugin Features:**
+- ✅ Auto-loading on startup
+- ✅ Access to all IRC events
+- ✅ Full access to main window and IRC clients (Python)
+- ✅ Signal/slot connections (Python)
+- ✅ Custom IRC commands
+- ✅ State persistence across restarts
+
+See `scripts/README.md` and example scripts for full API documentation.
 
 ## Configuration
 
@@ -219,8 +315,8 @@ User preferences are stored in `data/settings.json`. The settings dialog has 4 t
 - Use placeholders like `{nick}`, `{channel}`, `{reason}`
 
 #### Appearance Tab
-- **System Default** or **Custom** theme
-- Full color customization:
+- **Theme presets** - 7 built-in themes (Dark, Dracula, Monokai, Solarized Dark, Nord, Gruvbox Dark, Light)
+- **Custom colors** - Full control over every UI element:
   - Chat area (background, text, timestamps)
   - Tree/channel list (background, text, selection)
   - Nick list (background, text, selection)
@@ -235,22 +331,46 @@ User preferences are stored in `data/settings.json`. The settings dialog has 4 t
 
 Access settings via: **PyeChat → Settings**
 
-### Dark Theme
-PyeChat includes a comfortable dark theme optimized to reduce eye strain. The theme uses:
-- Dark charcoal backgrounds (#1e1e1e)
-- High-contrast light text (#e0e0e0)
-- Ubuntu Orange (#E95420) for selections and highlights
-- Subtle borders and properly styled scrollbars
+## Shell Command Execution
+
+The `/exec` command allows you to run shell commands directly from IRC:
+
+**Basic usage:**
+```
+/exec ls -la
+```
+Output is displayed in the current window.
+
+**Send output to channel:**
+```
+/exec -o uptime
+```
+The `-o` flag sends command output to the current channel (useful for showing system info).
+
+**Features:**
+- 10-second timeout to prevent hanging
+- STDOUT and STDERR are both captured
+- Works in channels and private messages
+- Exit code displayed on completion
+
+**Example use cases:**
+- `/exec -o uname -a` - Show system information in channel
+- `/exec date` - Check current date/time
+- `/exec df -h` - Check disk space
+- `/exec -o fortune` - Share a random quote
+
+**Security note:** Commands run with your user permissions. Be careful when using `-o` in public channels.
 
 ## Development
 
 ### Code Organization
-- `src/gui/main_window.py` - Main application window with message batching and UI management
-- `src/gui/dialogs/` - Modular dialog components (network list, network edit, settings)
-- `src/gui/utils/` - Shared GUI utilities (colors, formatters, WHOIS)
-- `src/irc/irc_client.py` - Full IRC protocol implementation with IRCv3 support
+- `src/gui/main_window.py` - Main application window with message batching, theme system, and UI management
+- `src/gui/dialogs/` - Modular dialog components (network list, network edit, settings with theme selector)
+- `src/gui/utils/` - Shared GUI utilities (colors, formatters, WHOIS, theme presets)
+- `src/irc/irc_client.py` - Full IRC protocol implementation with IRCv3 and SSL/TLS support
 - `src/irc/whois.py` - WHOIS numeric code handling
-- `src/irc/logger.py` - Logging system
+- `src/irc/logger.py` - Per-network/channel logging system
+- `src/plugins/loader.py` - Auto-loads Python (.py) and TCL (.tcl) scripts on startup
 
 ### Architecture
 - **Signal-based communication** - PyQt signals for IRC events
@@ -261,14 +381,27 @@ PyeChat includes a comfortable dark theme optimized to reduce eye strain. The th
 
 ### Contributing
 
-Contributions are welcome!
+Contributions are welcome! This is a fork of [ComputerTech312/pyechat](https://github.com/ComputerTech312/pyechat).
 
-To contribute:
+**To contribute:**
 1. Fork this repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+**Development Workflow (for maintainers):**
+```bash
+# Sync with upstream
+git fetch upstream
+git merge upstream/main
+git push origin main
+
+# Make changes and push
+git add -A
+git commit -m "Description of changes"
+git push origin main
+```
 
 ## Performance Notes
 
@@ -284,11 +417,22 @@ To contribute:
 - ✅ **Windows** - Should work (PyQt5 is cross-platform)
 - ⚠️ **macOS** - Untested but should work
 
-## Known Issues
+## Known Issues & Limitations
 
 - No DCC file transfer support (yet)
-- Self-signed SSL certificates are auto-accepted
-- **OpenSSL Compatibility**: For best SSL/TLS support on systems with OpenSSL 3.x, use system PyQt5 packages (`sudo apt install python3-pyqt5`)
+- Self-signed SSL certificates are auto-accepted (not validated)
+- **OpenSSL Compatibility**: For best SSL/TLS support on systems with OpenSSL 3.x, use system PyQt5 packages (`sudo apt install python3-pyqt5`) instead of pip
+- TCL plugins require python3-tk package for full functionality
+
+## Future Enhancements
+
+- DCC file transfer support
+- Spell checking
+- Channel logging viewer/search
+- Custom keyboard shortcuts
+- Plugin marketplace/browser
+- More theme presets
+- Notification system improvements
 
 ## License
 
