@@ -108,6 +108,11 @@ sudo apt install python3-pyqt5
 python3 main.py  # Run directly with system Python
 ```
 
+**Optional - For TCL Script Support:**
+```bash
+sudo apt install python3-tk  # Enables .tcl scripts in scripts/ directory
+```
+
 **Alternative with pip** (may have SSL issues on OpenSSL 3.x):
 ```bash
 python3 -m venv .venv
