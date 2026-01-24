@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
                              QHeaderView, QPushButton, QDialogButtonBox, QScrollArea,
                              QTextEdit, QColorDialog, QFontDialog, QInputDialog)
 from PyQt5.QtGui import QColor, QFont
+from PyQt5.QtCore import Qt
 from src.gui.utils.colors import get_nick_colour
 
 class SettingsDialogue(QDialog):

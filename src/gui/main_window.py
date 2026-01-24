@@ -639,7 +639,7 @@ class MainWindow(QMainWindow):
                     return
 
         if "***" in msg and not self.settings.get("show_events", True): return
-
+        if not target:
             if self.current_nw == nw:
                 target = self.current_target
                 
@@ -891,6 +891,22 @@ class MainWindow(QMainWindow):
                 break
 
     def on_whois(self, nw, data, tags):
+        # Check if user has defined a custom event format for this WHOIS numeric
+        whois_type_to_numeric = {
+            "user": "311", "server": "312", "idle": "317",
+            "status": "307", "bot": "310", "channels": "319",
+            "account": "330", "away": "301", "ircop": "313",
+            "realhost": "378", "modes": "379", "ssl_fingerprint": "275",
+            "secure": "671", "country": "344", "end": "318"
+        }
+        
+        numeric = whois_type_to_numeric.get(data.get("type"))
+        if numeric and numeric in self.settings.get("events_v2", {}):
+            # User has defined a custom format - let on_event_received handle it
+            # We need to reconstruct args from the structured data
+            return
+        
+        # Fall back to hardcoded formatting
         msg = format_whois_to_irc(data)
         if msg:
             self.on_message(nw, "", msg, tags)

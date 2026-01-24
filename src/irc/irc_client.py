@@ -239,7 +239,12 @@ class IRCClient(QObject):
                     whois_data = parse_whois_numeric(command, args)
                     if whois_data:
                         self.received_whois.emit(whois_data, tags)
-                    elif command not in ['332', '353']:
+                    
+                    # Emit event for custom numeric formatting
+                    self.event_received.emit(command, sender, args, tags)
+                    
+                    # Fallback display if no custom event is defined
+                    if command not in ['332', '353']:
                         text = " ".join(args[1:]) if len(args) > 1 else (args[0] if args else "")
                         self.received_message.emit("", f"[{command}] {text}", tags)
                 except Exception:
