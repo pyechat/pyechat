@@ -11,6 +11,7 @@ from PyQt5.QtCore import Qt, QTimer
 from src.irc.irc_client import IRCClient
 from src.gui.utils.colors import get_nick_colour
 from src.gui.utils.formatters import irc_to_html, format_text_event
+from src.gui.utils.whois import format_whois_to_irc
 from src.gui.dialogs.network_list import NetworkListDialogue
 from src.gui.dialogs.settings import SettingsDialogue
 
@@ -465,7 +466,9 @@ class MainWindow(QMainWindow):
         client.received_kick.connect(lambda c, t, k, r, n=name: self.on_kick(n, c, t, k, r))
         client.received_mode.connect(lambda c, s, m, n=name: self.on_mode(n, c, s, m))
         client.received_invite.connect(lambda c, s, ni, n=name: self.on_invite(n, c, s, ni))
+        client.received_notice.connect(lambda t, s, m, n=name: self.on_notice(n, t, s, m))
         client.received_action.connect(lambda t, s, m, n=name: self.on_action(n, t, s, m))
+        client.received_whois.connect(lambda d, t, n=name: self.on_whois(n, d, t))
         client.received_quit.connect(lambda ni, r, n=name: self.on_quit(n, ni, r))
         client.event_received.connect(lambda c, s, a, t, n=name: self.on_event_received(n, c, s, a, t))
         client.disconnected_from_server.connect(lambda n=name: self.on_disconnect(n))
@@ -895,6 +898,11 @@ class MainWindow(QMainWindow):
                         self.nick_timer.start(100)
                 break
 
+    def on_whois(self, nw, data, tags):
+        msg = format_whois_to_irc(data)
+        if msg:
+            self.on_message(nw, "", msg, tags)
+    
     def on_mode(self, nw, chan, sender, mode):
         """Handle MODE changes for ranks (@, +, etc.)."""
         self.on_event_received(nw, "MODE", sender, [chan, mode], {})
