@@ -217,10 +217,7 @@ PyeChat includes a comfortable dark theme optimized to reduce eye strain. The th
 
 ### Contributing
 
-Contributions are welcome! This fork includes additional dark theme support.
-
-**Upstream Repository**: [ComputerTech312/pyechat](https://github.com/ComputerTech312/pyechat)  
-**This Fork**: [lord3nd3r/pyechat](https://github.com/lord3nd3r/pyechat)
+Contributions are welcome!
 
 To contribute:
 1. Fork this repository
@@ -228,19 +225,6 @@ To contribute:
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
-### Syncing with Upstream
-
-To keep your fork up to date:
-```bash
-./sync.sh  # Automated sync script included
-```
-
-Or manually:
-```bash
-git pull upstream main
-git push origin main
-```
 
 ## Performance Notes
 
@@ -273,10 +257,8 @@ Copyright (c) 2026 Colby (ComputerTech312)
 
 - Inspired by [HexChat](https://hexchat.github.io/)
 - Built with [PyQt5](https://www.riverbankcomputing.com/software/pyqt/)
-- Dark theme enhancements by [lord3nd3r](https://github.com/lord3nd3r)
 
 ## Links
 
-- **Upstream**: https://github.com/ComputerTech312/pyechat
-- **This Fork**: https://github.com/lord3nd3r/pyechat
+- **Repository**: https://github.com/lord3nd3r/pyechat
 - **Official IRC**: #pyechat on irc.rizon.net and irc.libera.chat
