@@ -229,8 +229,6 @@ class IRCClient(QObject):
 
             elif command.isdigit():
                 try:
-            elif command.isdigit():
-                try:
                     # Specialized numeric handling for WHOIS and others
                     if command == '311': # WHOIS User
                         nick, user, host, real = args[1], args[2], args[3], args[5]
