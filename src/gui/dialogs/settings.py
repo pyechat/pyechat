@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
 from PyQt5.QtGui import QColor, QFont
 from PyQt5.QtCore import Qt
 from src.gui.utils.colors import get_nick_colour
+from src.gui.utils.themes import THEMES
 
 class SettingsDialogue(QDialog):
     def __init__(self, parent, current_settings):
@@ -205,7 +206,8 @@ class SettingsDialogue(QDialog):
         layout = QFormLayout(container)
         
         self.preset_combo = QComboBox()
-        self.preset_combo.addItems(["System Default", "Custom"])
+        theme_names = ["System Default", "Custom"] + list(THEMES.keys())
+        self.preset_combo.addItems(theme_names)
         self.preset_combo.currentTextChanged.connect(self.on_preset_change)
         layout.addRow("Theme Preset:", self.preset_combo)
         layout.addRow(QLabel(" "))
@@ -284,7 +286,39 @@ class SettingsDialogue(QDialog):
 
     def on_preset_change(self, name):
         self.settings["use_system_theme"] = (name == "System Default")
-        if hasattr(self, 'preview_chat'): self.preview_chat.setHtml(self.get_preview_html())
+        
+        # Apply theme colors if a preset is selected
+        if name in THEMES:
+            theme = THEMES[name]
+            for key, value in theme.items():
+                self.settings[key] = value
+                # Update button swatches
+                for i in range(self.sender().parent().layout().count()):
+                    item = self.sender().parent().layout().itemAt(i)
+                    if item and item.widget() and isinstance(item.widget(), QPushButton):
+                        btn = item.widget()
+                        # Check if button text matches a color key
+                        btn_keys = {
+                            "Chat Background": "bg_colour",
+                            "Chat Text": "fg_colour",
+                            "Timestamp Colour": "ts_colour",
+                            "Mention Background": "hl_bg",
+                            "Mention Border": "hl_border",
+                            "Tree Background": "tree_bg",
+                            "Tree Text": "tree_fg",
+                            "Tree Selection BG": "tree_sel_bg",
+                            "Tree Selection Text": "tree_sel_fg",
+                            "Nick List Background": "nick_bg",
+                            "Nick List Text": "nick_fg",
+                            "Nick Selection BG": "nick_sel_bg",
+                            "Nick Selection Text": "nick_sel_fg",
+                        }
+                        btn_text = btn.text()
+                        if btn_text in btn_keys:
+                            self.update_button_swatch(btn, btn_keys[btn_text])
+        
+        if hasattr(self, 'preview_chat'): 
+            self.preview_chat.setHtml(self.get_preview_html())
 
     def on_change_font(self):
         font, ok = QFontDialog.getFont(self.parent.chat.font(), self)
