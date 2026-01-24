@@ -129,19 +129,23 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             palette = self.tree.palette()
             palette.setColor(QPalette.Base, QColor(tree_bg))
             palette.setColor(QPalette.Text, QColor(tree_fg))
+            palette.setColor(QPalette.WindowText, QColor(tree_fg))
             palette.setColor(QPalette.Highlight, QColor(s.get('tree_sel_bg', '#E95420')))
             palette.setColor(QPalette.HighlightedText, QColor(s.get('tree_sel_fg', '#ffffff')))
             self.tree.setPalette(palette)
             self.tree.setAutoFillBackground(True)
+            print(f"Applied tree palette: bg={tree_bg}, fg={tree_fg}")
             
         if hasattr(self, 'nicks'):
             palette = self.nicks.palette()
             palette.setColor(QPalette.Base, QColor(nick_bg))
             palette.setColor(QPalette.Text, QColor(nick_fg))
+            palette.setColor(QPalette.WindowText, QColor(nick_fg))
             palette.setColor(QPalette.Highlight, QColor(s.get('nick_sel_bg', '#E95420')))
             palette.setColor(QPalette.HighlightedText, QColor(s.get('nick_sel_fg', '#ffffff')))
             self.nicks.setPalette(palette)
             self.nicks.setAutoFillBackground(True)
+            print(f"Applied nicks palette: bg={nick_bg}, fg={nick_fg}")
         
         # Still apply stylesheet to OTHER widgets (chat, input, etc)
         style = f"""
