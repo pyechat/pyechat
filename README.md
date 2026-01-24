@@ -79,7 +79,7 @@ pyechat/
 ## Getting Started
 
 ### Prerequisites
-- Python 3.8 or higher (tested up to 3.12)
+- Python 3.8 or higher (tested up to 3.13)
 - PyQt5 5.15.0 or higher
 
 ### Installation
@@ -92,21 +92,31 @@ cd pyechat
 
 2. **Install dependencies**
 
-Using pip:
+**⚠️ Important: SSL/TLS Support**
+
+For SSL/TLS connections to work properly on systems with OpenSSL 3.x, you **must** use the system PyQt5 package:
+
+**Recommended (Ubuntu/Debian):**
+```bash
+sudo apt install python3-pyqt5
+python3 main.py  # Run directly with system Python
+```
+
+**Alternative with pip** (may have SSL issues on OpenSSL 3.x):
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install PyQt5
+python main.py
 ```
 
-Or using system packages (Ubuntu/Debian):
-```bash
-sudo apt install python3-pyqt5
-```
+**Note:** The pip version of PyQt5 may have OpenSSL compatibility issues. If you see `Incompatible version of OpenSSL` errors, use the system package method above.
 
 3. **Run PyeChat**
 ```bash
-python main.py
+python3 main.py  # If using system packages
+# OR
+python main.py   # If using venv
 ```
 
 ### Quick Start
@@ -251,6 +261,7 @@ git push origin main
 - No DCC file transfer support (yet)
 - No plugin system (planned)
 - Self-signed SSL certificates are auto-accepted
+- **OpenSSL Compatibility**: PyQt5 from pip may not support SSL on systems with OpenSSL 3.x. Use system packages for full SSL/TLS support.
 
 ## License
 
