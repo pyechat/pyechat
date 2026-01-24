@@ -1,4 +1,4 @@
-"""Settings dialog for PyeChat."""
+\"\"\"Settings dialog for PyeChat.\"\"\"
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, 
                              QWidget, QTabWidget, QCheckBox, QLineEdit, QComboBox,
                              QGroupBox, QLabel, QTableWidget, QTableWidgetItem,
@@ -111,7 +111,10 @@ class SettingsDialogue(QDialog):
         return {
             "JOIN": "Join", "PART": "Part", "QUIT": "Quit", 
             "KICK": "Kick", "NICK": "Nick Change", "MODE": "Mode Change",
-            "NOTICE": "Notice", "INVITE": "Invite", "ACTION": "Action"
+            "NOTICE": "Notice", "INVITE": "Invite", "ACTION": "Action",
+            "311": "Whois User", "312": "Whois Server", "317": "Whois Idle",
+            "319": "Whois Channels", "330": "Whois Account", "307": "Whois Registered",
+            "301": "Whois Away", "313": "Whois Operator", "318": "Whois End"
         }
 
     def get_event_legend_map(self):
@@ -124,7 +127,16 @@ class SettingsDialogue(QDialog):
             "MODE": "$1=Sender, $2=Mode String, $3=Target",
             "NOTICE": "$1=Sender, $2=Message",
             "INVITE": "$1=Channel, $2=Sender",
-            "ACTION": "$1=Sender, $2=Message"
+            "ACTION": "$1=Sender, $2=Message",
+            "311": "$1=Nick, $2=User, $3=Host, $4=*, $5=Real Name",
+            "312": "$1=Nick, $2=Server, $3=Server Info",
+            "317": "$1=Nick, $2=Idle (secs), $3=Signon (timestamp)",
+            "319": "$1=Nick, $2=Channel list",
+            "330": "$1=Nick, $2=Account Name",
+            "307": "$1=Nick, $2=Info Message",
+            "301": "$1=Nick, $2=Away Message",
+            "313": "$1=Nick, $2=Privileges info",
+            "318": "$1=Nick, $2=End Message"
         }
 
     def update_event_legend(self):
@@ -144,7 +156,19 @@ class SettingsDialogue(QDialog):
             "MODE": {"fmt": "%C29*$t$1 sets mode: $2", "colour": ""},
             "NOTICE": {"fmt": "-%C29$1%C- $2", "colour": ""},
             "INVITE": {"fmt": "*** $2 invited you to $1", "colour": ""},
-            "ACTION": {"fmt": "* $1 $2", "colour": ""}
+            "ACTION": {"fmt": "* $1 $2", "colour": ""},
+            "311": {"fmt": "%C14Nickname:%O $1\n%C14Host mask:%O $2@$3\n%C14Real name:%O $5", "colour": ""},
+            "312": {"fmt": "%C14Connected to:%O $2 ($3)", "colour": ""},
+            "317": {"fmt": "%C14Idle since:%O $2s, %C14signon:%O $3", "colour": ""},
+            "319": {"fmt": "%C14Channels:%O $2", "colour": ""},
+            "330": {"fmt": "%C14Logged in as:%O $2", "colour": ""},
+            "307": {"fmt": "%C14Registered nick:%O $2", "colour": ""},
+            "301": {"fmt": "%C14Away message:%O $2", "colour": ""},
+            "313": {"fmt": "%C14IRC Operator:%O $2", "colour": ""},
+            "378": {"fmt": "%C14Actual host:%O $2", "colour": ""},
+            "379": {"fmt": "%C14Modes:%O $2", "colour": ""},
+            "671": {"fmt": "%C14Secure connection:%O $2", "colour": ""},
+            "318": {"fmt": "%C14End of WHOIS", "colour": ""}
         }
 
     def add_text_event_row(self, name, fmt, cmd):
@@ -210,14 +234,6 @@ class SettingsDialogue(QDialog):
         self.font_btn = QPushButton("Change Chat Font")
         self.font_btn.clicked.connect(self.on_change_font)
         layout.addRow("Font:", self.font_btn)
-        layout.addRow(QLabel(" "))
-
-        self.whois_label_idx = QLineEdit(self.settings.get("whois_label_index", "14"))
-        self.whois_value_idx = QLineEdit(self.settings.get("whois_value_index", ""))
-        self.whois_label_idx.setPlaceholderText("IRC color code (0-99)")
-        self.whois_value_idx.setPlaceholderText("IRC color code (0-99)")
-        layout.addRow("WHOIS Label IRC Code:", self.whois_label_idx)
-        layout.addRow("WHOIS Value IRC Code:", self.whois_value_idx)
 
         scroll.setWidget(container)
         main_layout.addWidget(scroll)
@@ -239,12 +255,12 @@ class SettingsDialogue(QDialog):
         c1, c2 = get_nick_colour("Alice", bg), get_nick_colour("Bob", bg)
         nick = s.get("default_nick", "User")
         
-        html = f"<div style='background-color:{bg}; color:{fg}; padding:10px; font-family: monospace;'>"
-        html += f"<div><span style='color:{ts}'>[12:00:00]</span> <span style='color:{c1}'>&lt;Alice&gt;</span> Hello!</div>"
-        html += f"<div><span style='color:{ts}'>[12:00:05]</span> <span style='color:{c2}'>&lt;Bob&gt;</span> Testing theme...</div>"
-        html += f"<div style='background-color:{hbg}; border-left:3px solid {hb}; padding-left:5px;'>"
-        html += f"<span style='color:{ts}'>[12:00:10]</span> <span style='color:{c1}'>&lt;Alice&gt;</span> {nick}, check this out!</div>"
-        html += "</div>"
+        html = f\"<div style='background-color:{bg}; color:{fg}; padding:10px; font-family: monospace;'>\"
+        html += f\"<div><span style='color:{ts}'>[12:00:00]</span> <span style='color:{c1}'>&lt;Alice&gt;</span> Hello!</div>\"
+        html += f\"<div><span style='color:{ts}'>[12:00:05]</span> <span style='color:{c2}'>&lt;Bob&gt;</span> Testing theme...</div>\"
+        html += f\"<div style='background-color:{hbg}; border-left:3px solid {hb}; padding-left:5px;'>\"
+        html += f\"<span style='color:{ts}'>[12:00:10]</span> <span style='color:{c1}'>&lt;Alice&gt;</span> {nick}, check this out!</div>\"
+        html += \"</div>\"
         return html
 
     def add_colour_option(self, layout, label, key):
@@ -256,34 +272,34 @@ class SettingsDialogue(QDialog):
     def update_button_swatch(self, btn, key):
         clr = self.settings.get(key, "#ffffff")
         qclr = QColor(clr if not clr.startswith("rgba") else "transparent")
-        fg = "#fff" if qclr.lightness() < 128 else "#000"
-        btn.setStyleSheet(f"background-color:{clr}; color:{fg}; border:1px solid #555; height:24px; font-weight:bold;")
+        fg = \"#fff\" if qclr.lightness() < 128 else \"#000\"
+        btn.setStyleSheet(f\"background-color:{clr}; color:{fg}; border:1px solid #555; height:24px; font-weight:bold;\")
         if hasattr(self, 'preview_chat'): self.preview_chat.setHtml(self.get_preview_html())
 
     def pick_colour(self, key, btn):
-        current = QColor(self.settings.get(key, "#ffffff"))
-        clr = QColorDialog.getColor(current, self, "Pick color", QColorDialog.DontUseNativeDialog)
+        current = QColor(self.settings.get(key, \"#ffffff\"))
+        clr = QColorDialog.getColor(current, self, \"Pick color\", QColorDialog.DontUseNativeDialog)
         if clr.isValid():
             self.settings[key] = clr.name()
             self.update_button_swatch(btn, key)
-            self.preset_combo.setCurrentText("Custom")
+            self.preset_combo.setCurrentText(\"Custom\")
 
     def on_preset_change(self, name):
-        self.settings["use_system_theme"] = (name == "System Default")
+        self.settings[\"use_system_theme\"] = (name == \"System Default\")
         if hasattr(self, 'preview_chat'): self.preview_chat.setHtml(self.get_preview_html())
 
     def on_change_font(self):
         font, ok = QFontDialog.getFont(self.parent.chat.font(), self)
-        if ok: self.settings["font"] = font.toString()
+        if ok: self.settings[\"font\"] = font.toString()
 
     def setup_identity_tab(self):
         tab = QWidget()
         layout = QFormLayout(tab)
-        self.default_nick = QLineEdit(self.settings.get("default_nick", "pyechat_user"))
-        self.real_name = QLineEdit(self.settings.get("real_name", "PyeChat User"))
-        layout.addRow("Default Nick:", self.default_nick)
-        layout.addRow("Real Name:", self.real_name)
-        self.tabs.addTab(tab, "Identity")
+        self.default_nick = QLineEdit(self.settings.get(\"default_nick\", \"pyechat_user\"))
+        self.real_name = QLineEdit(self.settings.get(\"real_name\", \"PyeChat User\"))
+        layout.addRow(\"Default Nick:\", self.default_nick)
+        layout.addRow(\"Real Name:\", self.real_name)
+        self.tabs.addTab(tab, \"Identity\")
 
     def apply_live(self):
         self.update_dict()
@@ -291,19 +307,17 @@ class SettingsDialogue(QDialog):
 
     def update_dict(self):
         self.settings.update({
-            "show_timestamps": self.ts.isChecked(),
-            "ts_format": self.ts_fmt.text(),
-            "show_events": self.events.isChecked(),
-            "auto_reconnect": self.reconnect.isChecked(),
-            "nick_colouring": self.nick_colour.isChecked(),
-            "highlight_mentions": self.highlight.isChecked(),
-            "conn_info_level": self.conn_info.currentText(),
-            "completion_suffix": self.comp_suffix.text(),
-            "events_v2": self.get_table_data_v2(),
-            "default_nick": self.default_nick.text(),
-            "real_name": self.real_name.text(),
-            "whois_label_index": self.whois_label_idx.text(),
-            "whois_value_index": self.whois_value_idx.text()
+            \"show_timestamps\": self.ts.isChecked(),
+            \"ts_format\": self.ts_fmt.text(),
+            \"show_events\": self.events.isChecked(),
+            \"auto_reconnect\": self.reconnect.isChecked(),
+            \"nick_colouring\": self.nick_colour.isChecked(),
+            \"highlight_mentions\": self.highlight.isChecked(),
+            \"conn_info_level\": self.conn_info.currentText(),
+            \"completion_suffix\": self.comp_suffix.text(),
+            \"events_v2\": self.get_table_data_v2(),
+            \"default_nick\": self.default_nick.text(),
+            \"real_name\": self.real_name.text()
         })
 
     def accept(self):
@@ -317,5 +331,5 @@ class SettingsDialogue(QDialog):
             if it_name and it_fmt:
                 cmd = it_name.data(Qt.UserRole)
                 fmt = it_fmt.text().strip()
-                if cmd: data[cmd] = {"fmt": fmt, "colour": ""}
+                if cmd: data[cmd] = {\"fmt\": fmt, \"colour\": \"\"}
         return data

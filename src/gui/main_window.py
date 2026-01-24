@@ -139,10 +139,20 @@ class MainWindow(QMainWindow):
                     "MODE": {"fmt": "%C29*$t$1 sets mode: $2", "colour": ""},
                     "NOTICE": {"fmt": "-%C29$1%C- $2", "colour": ""},
                     "INVITE": {"fmt": "*** $2 invited you to $1", "colour": ""},
-                    "ACTION": {"fmt": "* {sender} {msg}", "colour": "#00aa00"}
-                },
-                "whois_label_index": "14",
-                "whois_value_index": ""
+                    "ACTION": {"fmt": "* $1 $2", "colour": ""},
+                    "311": {"fmt": "%C14Nickname:%O $1\n%C14Host mask:%O $2@$3\n%C14Real name:%O $5", "colour": ""},
+                    "312": {"fmt": "%C14Connected to:%O $2 ($3)", "colour": ""},
+                    "317": {"fmt": "%C14Idle since:%O $2s, %C14signon:%O $3", "colour": ""},
+                    "319": {"fmt": "%C14Channels:%O $2", "colour": ""},
+                    "330": {"fmt": "%C14Logged in as:%O $2", "colour": ""},
+                    "307": {"fmt": "%C14Registered nick:%O $2", "colour": ""},
+                    "301": {"fmt": "%C14Away message:%O $2", "colour": ""},
+                    "313": {"fmt": "%C14IRC Operator:%O $2", "colour": ""},
+                    "378": {"fmt": "%C14Actual host:%O $2", "colour": ""},
+                    "379": {"fmt": "%C14Modes:%O $2", "colour": ""},
+                    "671": {"fmt": "%C14Secure connection:%O $2", "colour": ""},
+                    "318": {"fmt": "%C14End of WHOIS", "colour": ""}
+                }
             }
 
     def save_settings(self):
@@ -628,7 +638,10 @@ class MainWindow(QMainWindow):
                 if not self.find_item(nw, target): self.add_tree_item(nw, target)
                 if not self.current_target: self.switch_buffer(nw, target)
             
-            self.on_message(nw, target, msg, tags)
+            # Support multi-line events (one msg per line for timestamps)
+            for line in msg.split('\n'):
+                if line.strip():
+                    self.on_message(nw, target, line, tags)
         except Exception as e:
             print(f"Event formatting error for {command}: {e}")
 
@@ -915,9 +928,7 @@ class MainWindow(QMainWindow):
             return
         
         # Fall back to hardcoded formatting
-        label_clr = self.settings.get("whois_label_index", "14")
-        value_clr = self.settings.get("whois_value_index", "")
-        msg = format_whois_to_irc(data, label_color=label_clr, value_color=value_clr)
+        msg = format_whois_to_irc(data)
         if msg:
             # Split multi-line messages so each gets its own timestamp
             for line in msg.split('\n'):
