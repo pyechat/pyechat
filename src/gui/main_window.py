@@ -97,6 +97,7 @@ class MainWindow(QMainWindow):
                 "ts_colour": "#888888",
                 "hl_bg": "rgba(255, 204, 0, 0.2)",
                 "hl_border": "#ffcc00",
+                "whois_colour": "#0000ff", # Standard HexChat Blue
                 # Tree/Network List
                 "tree_bg": "#f3f3f3",
                 "tree_fg": "#000000",
@@ -157,7 +158,6 @@ class MainWindow(QMainWindow):
             app = QApplication.instance()
             if app:
                 palette = app.style().standardPalette()
-                from PyQt5.QtGui import QPalette, QColor
                 palette.setColor(QPalette.Highlight, QColor("#E95420"))
                 palette.setColor(QPalette.HighlightedText, QColor("#ffffff"))
                 app.setPalette(palette)
@@ -225,10 +225,10 @@ class MainWindow(QMainWindow):
                 QMenu::item:selected {{ background-color: {menu_hover}; color: white; }}
                 QMenu::separator {{ height: 1px; background: {border}; margin: 4px 2px; }}
                 QPlainTextEdit {{ background-color: {i_bg}; color: {i_fg}; border: 1px solid {i_border}; border-radius: 4px; padding: 2px; font-size: 14px; }}
-                QTreeWidget { background-color: {tree_bg}; color: {tree_fg}; border: none; outline: none; }
-                QTreeWidget::item { padding: 2px; }
-                QTreeWidget::item:selected { background-color: {tree_sel_bg}; color: {tree_sel_fg}; }
-                QTreeWidget::branch { width: 12px; }
+                QTreeWidget {{ background-color: {tree_bg}; color: {tree_fg}; border: none; outline: none; }}
+                QTreeWidget::item {{ padding: 2px; }}
+                QTreeWidget::item:selected {{ background-color: {tree_sel_bg}; color: {tree_sel_fg}; }}
+                QTreeWidget::branch {{ width: 12px; }}
                 QListWidget {{ background-color: {nick_bg}; color: {nick_fg}; border: none; }}
                 QListWidget::item:selected {{ background-color: {nick_sel_bg}; color: {nick_sel_fg}; }}
                 QLabel#topic {{ background-color: {t_bg}; color: {t_fg}; padding: 4px; border: 1px solid {t_border}; font-weight: normal; margin-bottom: 2px; }}
@@ -414,12 +414,20 @@ class MainWindow(QMainWindow):
         item = self.nicks.itemAt(pos)
         if not item: return
         nick = item.text()
+        
+        # Strip prefixes for commands
+        prefix_chars = ''.join(NICK_PREFIXES) + ' '
+        raw_nick = nick.lstrip(prefix_chars)
+        
         menu = QMenu()
         whois = menu.addAction("Whois")
         query = menu.addAction("Query (PM)")
         action = menu.exec_(self.nicks.mapToGlobal(pos))
-        if action == whois: self.clients[self.current_nw].send_command(f"WHOIS {nick}")
-        elif action == query: self.on_message(self.current_nw, nick, "*** Query started")
+        if action == whois: 
+            # Use 'WHOIS nick nick' to ensure idle time is returned on most networks
+            self.clients[self.current_nw].send_command(f"WHOIS {raw_nick} {raw_nick}")
+        elif action == query: 
+            self.on_message(self.current_nw, raw_nick, "*** Query started")
 
     def setup_menu(self):
         menu = self.menuBar()
@@ -483,11 +491,14 @@ class MainWindow(QMainWindow):
         buf["activity"] = buf["highlight"] = False
         it = self.find_item(nw, target)
         if it:
-            it.setForeground(0, QPalette().color(QPalette.WindowText))
-            font = it.font(0)
-            if not target: font.setBold(True) # Keep networks bold
-            else: font.setBold(False)
-            it.setFont(0, font)
+            try:
+                it.setForeground(0, QPalette().color(QPalette.WindowText))
+                font = it.font(0)
+                if not target: font.setBold(True) # Keep networks bold
+                else: font.setBold(False)
+                it.setFont(0, font)
+            except RuntimeError:
+                self.tree_items.pop((nw, target), None)
 
         try:
             self.chat.setUpdatesEnabled(False)
@@ -645,14 +656,27 @@ class MainWindow(QMainWindow):
         
         # Connection Info Filtering
         if "[" in msg and "]" in msg and msg[1:4].isdigit():
-            code = msg[1:4]
+            code = int(msg[1:4])
             level = self.settings.get("conn_info_level", "Standard")
-            if level == "Minimal" and code != "001": return
-            if level == "Standard" and code not in ["001", "372", "375", "376"]:
-                if not (400 <= int(code) <= 599): return
+            if level == "Minimal" and code != 1: return
+            if level == "Standard":
+                # Allow MOTD (372, 375, 376), Welcome (001), 
+                # and importantly, all 300-level info (WHOIS) and 400+ errors.
+                if not (300 <= code <= 599) and code not in [1]:
+                    return
 
         if "***" in msg and not self.settings.get("show_events", True): return
-        
+
+        if target == "" and ("* [" in msg and "]" in msg):
+            # Try to extract the nick to see if it's a WHOIS-style message
+            if self.current_nw == nw:
+                target = self.current_target
+            
+            # Apply customizable WHOIS color
+            whois_clr = self.settings.get("whois_colour")
+            if whois_clr and "fmt_color" not in tags:
+                tags["fmt_color"] = whois_clr
+                
         self.setup_buffer(nw, target)
         
         # Nick Coloring and Highlighting
@@ -720,19 +744,23 @@ class MainWindow(QMainWindow):
         
         it = self.find_item(nw, target)
         if it:
-            if is_highlight:
-                buf["highlight"] = True
-                it.setForeground(0, QColor("#E95420")) # Ubuntu Orange
-            else:
-                buf["activity"] = True
-                if not buf["highlight"]:
-                    # Use a brighter version of the theme text color for activity
-                    # In dark mode this is usually white.
-                    it.setForeground(0, QColor("#ffffff" if self.settings.get("bg_colour", "#1e1e1e") != "#ffffff" else "#000000"))
-            
-            font = it.font(0)
-            font.setBold(True)
-            it.setFont(0, font)
+            try:
+                if is_highlight:
+                    buf["highlight"] = True
+                    it.setForeground(0, QColor("#E95420")) # Ubuntu Orange
+                else:
+                    buf["activity"] = True
+                    if not buf["highlight"]:
+                        # Use a brighter version of the theme text color for activity
+                        # In dark mode this is usually white.
+                        it.setForeground(0, QColor("#ffffff" if self.settings.get("bg_colour", "#1e1e1e") != "#ffffff" else "#000000"))
+                
+                font = it.font(0)
+                font.setBold(True)
+                it.setFont(0, font)
+            except RuntimeError:
+                # Tree item was deleted but still in dictionary - cleanup
+                self.tree_items.pop((nw, target), None)
 
     def flush_messages(self):
         if not self.msg_queue: return

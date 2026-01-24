@@ -8,13 +8,13 @@ Join our official channels to get support, share ideas, or connect with the comm
 - **Libera.Chat**: `ircs://irc.libera.chat/#pyechat`
 
 ## Features
-- 🎨 Modern, customizable UI with theme support
-- 🌐 Support for multiple IRC networks
-- 🔒 SSL/TLS and SASL authentication
-- 💬 Nick color coding and tab completion
-- 📝 Message formatting (bold, italic, colors)
-- ⚙️ Persistent settings and network configurations
-- 🎯 Highlight mentions and custom event formatting
+- Modern, customizable UI with theme support
+- Support for multiple IRC networks
+- SSL/TLS and SASL authentication
+- Nick color coding and tab completion
+- Message formatting (bold, italic, colors)
+- Persistent settings and network configurations
+- Highlight mentions and custom event formatting
 
 ## Project Structure
 ```

@@ -145,6 +145,7 @@ class SettingsDialogue(QDialog):
         self.add_colour_option(layout, "Timestamp Colour", "ts_colour")
         self.add_colour_option(layout, "Mention Background", "hl_bg")
         self.add_colour_option(layout, "Mention Border", "hl_border")
+        self.add_colour_option(layout, "WHOIS Info Colour", "whois_colour")
         layout.addRow(QLabel(" "))
         
         self.add_colour_option(layout, "Tree Background", "tree_bg")
@@ -243,6 +244,7 @@ class SettingsDialogue(QDialog):
             "highlight_mentions": self.highlight.isChecked(),
             "conn_info_level": self.conn_info.currentText(),
             "completion_suffix": self.comp_suffix.text(),
+            "whois_colour": self.settings.get("whois_colour"),
             "events_v2": self.get_table_data_v2(),
             "default_nick": self.default_nick.text(),
             "real_name": self.real_name.text()
