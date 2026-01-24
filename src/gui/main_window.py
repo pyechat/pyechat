@@ -10,7 +10,7 @@ from PyQt5.QtGui import QIcon, QTextCursor, QFont, QColor, QPalette
 from PyQt5.QtCore import Qt, QTimer
 from src.irc.irc_client import IRCClient
 from src.gui.utils.colors import get_nick_colour
-from src.gui.utils.formatters import irc_to_html
+from src.gui.utils.formatters import irc_to_html, format_text_event
 from src.gui.dialogs.network_list import NetworkListDialogue
 from src.gui.dialogs.settings import SettingsDialogue
 
@@ -131,14 +131,14 @@ class MainWindow(QMainWindow):
                 "skip_network_list": False,
                 "conn_info_level": "Standard",
                 "events_v2": {
-                    "JOIN": {"fmt": "*** {nick} joined {channel}", "colour": "#00aa00"},
-                    "PART": {"fmt": "*** {nick} left {channel}", "colour": "#aa0000"},
-                    "QUIT": {"fmt": "*** {nick} quit ({reason})", "colour": "#aa0000"},
-                    "KICK": {"fmt": "*** {nick} was kicked by {kicker} ({reason})", "colour": "#ff0000"},
-                    "NICK": {"fmt": "*** {old_nick} is now known as {new_nick}", "colour": "#00aaaa"},
-                    "MODE": {"fmt": "*** {sender} sets mode: {mode}", "colour": "#aa00aa"},
-                    "NOTICE": {"fmt": "-{sender}- {msg}", "colour": "#aaaa00"},
-                    "INVITE": {"fmt": "*** {sender} invited {nick} to {channel}", "colour": "#0000aa"},
+                    "JOIN": {"fmt": "%C23*$t$1 ($3%C23) has joined", "colour": ""},
+                    "PART": {"fmt": "%C23*$t$1 ($2%C23) has left $3 (%C23$4%C23)", "colour": ""},
+                    "QUIT": {"fmt": "%C23*$t$1 has quit (%C23$2%C23)", "colour": ""},
+                    "KICK": {"fmt": "%C22*$t$1 has kicked $2 from $3 ($4)", "colour": ""},
+                    "NICK": {"fmt": "%C28*$t$1 is now known as $2", "colour": ""},
+                    "MODE": {"fmt": "%C29*$t$1 sets mode: $2", "colour": ""},
+                    "NOTICE": {"fmt": "-%C29$1%C- $2", "colour": ""},
+                    "INVITE": {"fmt": "*** $2 invited you to $1", "colour": ""},
                     "ACTION": {"fmt": "* {sender} {msg}", "colour": "#00aa00"}
                 }
             }
@@ -544,103 +544,64 @@ class MainWindow(QMainWindow):
         clr_hex = data.get("colour", "") if isinstance(data, dict) else ""
         if not fmt: return
         
-        if command == "MODE":
+        # Prepare arguments for HexChat style $1, $2, etc.
+        host = tags.get('host', '')
+        evt_args = []
+        target = ""
+
+        if command == "JOIN":
+            target = args[0]
+            evt_args = [sender, target, host]
+        elif command == "PART":
+            target = args[0]
+            reason = args[1] if len(args) > 1 else ""
+            evt_args = [sender, host, target, reason]
+        elif command == "QUIT":
+            reason = args[0] if args else ""
+            evt_args = [sender, reason, host]
+        elif command == "KICK":
+            target = args[0]
+            kicked = args[1]
+            reason = args[2] if len(args) > 2 else ""
+            evt_args = [sender, kicked, target, reason]
+            # Special case for self-kick
+            if kicked.lower() == self.clients[nw].nickname.lower():
+                msg = f"* You have been kicked from {target} by {sender} ({reason})"
+                self.on_message(nw, target, msg, tags)
+                return
+        elif command == "NICK":
+            new_nick = args[0]
+            evt_args = [sender, new_nick]
+        elif command == "MODE":
+            target = args[0]
             mode_str = " ".join(args[1:]) if len(args) > 1 else ""
-            chan = args[0] if len(args) > 0 else ""
-            
-            # Intelligent MODE parsing
-            parts = mode_str.split()
-            if parts:
-                flags = parts[0]
-                m_args = parts[1:]
-                arg_idx = 0
-                parsed_modes = []
-                action = "+"
-                
-                for char in flags:
-                    if char in "+-":
-                        action = char
-                        continue
-                    
-                    plus_clr = "\x0303" # Green
-                    minus_clr = "\x0304" # Red
-                    clr = plus_clr if action == "+" else minus_clr
-                    
-                    if char in NICK_RANK_MODES and arg_idx < len(m_args):
-                        target = m_args[arg_idx]
-                        arg_idx += 1
-                        desc = ""
-                        if char == "o": desc = "ops"
-                        elif char == "v": desc = "voice"
-                        elif char == "h": desc = "half-ops"
-                        elif char == "a": desc = "admin"
-                        elif char == "q": desc = "owner"
-                        
-                        verb = "gives" if action == "+" else "removes"
-                        prep = "to" if action == "+" else "from"
-                        parsed_modes.append(f"{verb} {clr}{desc}\x0f {prep} {target}")
-                    elif char in "beIkl": # Modes with args
-                        if arg_idx < len(m_args):
-                            parsed_modes.append(f"sets mode: {clr}{action}{char}\x0f {m_args[arg_idx]}")
-                            arg_idx += 1
-                        else:
-                            parsed_modes.append(f"sets mode: {clr}{action}{char}\x0f")
-                    else:
-                        parsed_modes.append(f"sets mode: {clr}{action}{char}\x0f")
-                
-                if parsed_modes:
-                    # If it's just one mode, we can show it nicely
-                    if len(parsed_modes) == 1:
-                        msg = f"*** {sender} {parsed_modes[0]}"
-                    else:
-                        msg = f"*** {sender} sets modes: {', '.join(parsed_modes)}"
-                    
-                    # Ensure color code from settings is passed through tags
-                    tags["fmt_color"] = clr_hex
-                    self.on_message(nw, chan, msg, tags)
-                    return
-
-        ctx = {
-            "nick": sender, "sender": sender,
-            "channel": args[0] if len(args) > 0 else "",
-            "target": args[1] if len(args) > 1 else (args[0] if len(args) > 0 else ""),
-            "msg": args[-1] if len(args) > 0 else "",
-            "reason": args[-1] if len(args) > 0 else "",
-            "mode": " ".join(args[1:]) if len(args) > 1 else "",
-            "kicker": sender,
-            "old_nick": sender,
-            "new_nick": args[0] if len(args) > 0 else "",
-            "white": "\x0300", "black": "\x0301", "blue": "\x0302", "green": "\x0303",
-            "red": "\x0304", "brown": "\x0305", "purple": "\x0306", "orange": "\x0307",
-            "yellow": "\x0308", "teal": "\x0310", "cyan": "\x0311", "light_blue": "\x0312",
-            "pink": "\x0313", "grey": "\x0314", "plain": "\x0f"
-        }
+            evt_args = [sender, mode_str, target]
+        elif command == "NOTICE":
+            target = args[0]
+            msg = args[1]
+            evt_args = [sender, msg]
+            if target.lower() == self.clients[nw].nickname.lower(): target = sender
+        elif command == "INVITE":
+            target = "" # Status or current
+            chan = args[1]
+            evt_args = [chan, sender]
         
-        if command == "KICK" and len(args) > 1:
-            ctx["nick"] = args[1]
-            ctx["target"] = args[1]
-            ctx["reason"] = args[2] if len(args) > 2 else ""
-            ctx["msg"] = ctx["reason"]
-
         try:
-            if command == "KICK" and len(args) > 1:
-                kicked_nick = args[1]
-                if kicked_nick.lower() == self.clients[nw].nickname.lower():
-                    channel = args[0] if len(args) > 0 else ""
-                    reason = args[2] if len(args) > 2 else ""
-                    msg = f"* You have been kicked from {channel} by {sender} ({reason})"
-                else:
-                    msg = fmt.format(**ctx)
+            # Use HexChat formatter if $ is present, else fallback to str.format
+            if '$' in fmt:
+                msg = format_text_event(fmt, evt_args)
             else:
+                # Compatibility with old {} format
+                ctx = {
+                    "nick": sender, "sender": sender, "host": host,
+                    "channel": target, "target": target,
+                    "msg": args[-1] if args else "", "reason": args[-1] if args else ""
+                }
                 msg = fmt.format(**ctx)
                 
             tags["fmt_color"] = clr_hex
-            target = ctx["channel"]
-            if not target.startswith('#'):
-                if command in ["NOTICE", "ACTION", "PRIVMSG"]:
-                    if target.lower() == self.clients[nw].nickname.lower(): target = sender
-                else: target = ""
             
+            # Setup buffer for self-joins
             if command == "JOIN" and sender.lower() == self.clients[nw].nickname.lower():
                 self.setup_buffer(nw, target)
                 if not self.find_item(nw, target): self.add_tree_item(nw, target)
@@ -648,7 +609,6 @@ class MainWindow(QMainWindow):
             
             self.on_message(nw, target, msg, tags)
         except Exception as e:
-            # Log formatting errors but don't crash
             print(f"Event formatting error for {command}: {e}")
 
     def on_message(self, nw, target, msg, tags=None):

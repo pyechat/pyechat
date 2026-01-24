@@ -63,50 +63,96 @@ class SettingsDialogue(QDialog):
         tab = QWidget()
         layout = QVBoxLayout(tab)
         
-        self.event_table = QTableWidget(0, 3)
-        self.event_table.setHorizontalHeaderLabels(["IRC Command", "Message Format", "Line Colour"])
+        self.event_table = QTableWidget(0, 2)
+        self.event_table.setHorizontalHeaderLabels(["Event", "Text"])
         self.event_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.event_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.event_table.itemSelectionChanged.connect(self.update_event_legend)
         
         evs = self.settings.get("events_v2", self.get_default_events_v2())
+        # Use human names if we have them, else raw command
+        human_names = self.get_event_name_map()
         for cmd, data in evs.items():
-            fmt = data if isinstance(data, str) else data.get("fmt", "")
-            clr = "" if isinstance(data, str) else data.get("colour", "")
-            self.add_table_row(cmd, fmt, clr)
+            name = human_names.get(cmd, cmd)
+            fmt = data.get("fmt", "") if isinstance(data, dict) else data
+            self.add_text_event_row(name, fmt, cmd)
         
         layout.addWidget(self.event_table)
         
+        # Legend Area
+        self.legend_group = QGroupBox("Variable Descriptions")
+        legend_layout = QVBoxLayout(self.legend_group)
+        self.legend_label = QLabel("Select an event to see variable mappings.")
+        self.legend_label.setWordWrap(True)
+        self.legend_label.setStyleSheet("color: #666; font-style: italic;")
+        legend_layout.addWidget(self.legend_label)
+        layout.addWidget(self.legend_group)
+        
         btns = QHBoxLayout()
+        left_btns = QHBoxLayout()
+        save_btn = QPushButton("Save As..."); left_btns.addWidget(save_btn)
+        load_btn = QPushButton("Load From..."); left_btns.addWidget(load_btn)
+        test_btn = QPushButton("Test All"); left_btns.addWidget(test_btn)
+        
+        right_btns = QHBoxLayout()
         add_btn = QPushButton("Add Event"); add_btn.clicked.connect(self.add_new_event)
         del_btn = QPushButton("Remove Selected"); del_btn.clicked.connect(self.remove_event)
-        btns.addWidget(add_btn); btns.addWidget(del_btn); btns.addStretch()
+        right_btns.addWidget(add_btn); right_btns.addWidget(del_btn)
+        
+        btns.addLayout(left_btns)
+        btns.addStretch()
+        btns.addLayout(right_btns)
         layout.addLayout(btns)
         
         self.tabs.addTab(tab, "Events")
 
-    def get_default_events_v2(self):
+    def get_event_name_map(self):
         return {
-            "JOIN": {"fmt": "*** {nick} joined {channel}", "colour": "#00aa00"},
-            "PART": {"fmt": "*** {nick} left {channel}", "colour": "#aa0000"},
-            "QUIT": {"fmt": "*** {nick} quit ({reason})", "colour": "#aa0000"},
-            "KICK": {"fmt": "*** {nick} was kicked by {kicker} ({reason})", "colour": "#ff0000"},
-            "NICK": {"fmt": "*** {old_nick} is now known as {new_nick}", "colour": "#00aaaa"},
-            "MODE": {"fmt": "*** {sender} sets mode: {mode}", "colour": "#aa00aa"},
-            "NOTICE": {"fmt": "-{sender}- {msg}", "colour": "#aaaa00"},
-            "INVITE": {"fmt": "*** {sender} invited {nick} to {channel}", "colour": "#0000aa"}
+            "JOIN": "Join", "PART": "Part", "QUIT": "Quit", 
+            "KICK": "Kick", "NICK": "Nick Change", "MODE": "Mode Change",
+            "NOTICE": "Notice", "INVITE": "Invite", "ACTION": "Action"
         }
 
-    def add_table_row(self, cmd, fmt, clr=""):
+    def get_event_legend_map(self):
+        return {
+            "JOIN": "$1=Nickname, $2=Channel, $3=Hostmask",
+            "PART": "$1=Nickname, $2=Hostmask, $3=Channel, $4=Reason",
+            "QUIT": "$1=Nickname, $2=Reason, $3=Hostmask",
+            "KICK": "$1=Kicker Nick, $2=Kicked Nick, $3=Channel, $4=Reason",
+            "NICK": "$1=Old Nickname, $2=New Nickname",
+            "MODE": "$1=Sender, $2=Mode String, $3=Target",
+            "NOTICE": "$1=Sender, $2=Message",
+            "INVITE": "$1=Channel, $2=Sender",
+            "ACTION": "$1=Sender, $2=Message"
+        }
+
+    def update_event_legend(self):
+        row = self.event_table.currentRow()
+        if row < 0: return
+        cmd = self.event_table.item(row, 0).data(Qt.UserRole)
+        legend = self.get_event_legend_map().get(cmd, "Custom IRC command event.")
+        self.legend_label.setText(legend)
+
+    def get_default_events_v2(self):
+        return {
+            "JOIN": {"fmt": "%C23*$t$1 ($3%C23) has joined", "colour": ""},
+            "PART": {"fmt": "%C23*$t$1 ($2%C23) has left $3 (%C23$4%C23)", "colour": ""},
+            "QUIT": {"fmt": "%C23*$t$1 has quit (%C23$2%C23)", "colour": ""},
+            "KICK": {"fmt": "%C22*$t$1 has kicked $2 from $3 ($4)", "colour": ""},
+            "NICK": {"fmt": "%C28*$t$1 is now known as $2", "colour": ""},
+            "MODE": {"fmt": "%C29*$t$1 sets mode: $2", "colour": ""},
+            "NOTICE": {"fmt": "-%C29$1%C- $2", "colour": ""},
+            "INVITE": {"fmt": "*** $2 invited you to $1", "colour": ""},
+            "ACTION": {"fmt": "* $1 $2", "colour": ""}
+        }
+
+    def add_text_event_row(self, name, fmt, cmd):
         row = self.event_table.rowCount()
         self.event_table.insertRow(row)
-        self.event_table.setItem(row, 0, QTableWidgetItem(cmd))
+        item_name = QTableWidgetItem(name)
+        item_name.setData(Qt.UserRole, cmd) # Store raw command
+        self.event_table.setItem(row, 0, item_name)
         self.event_table.setItem(row, 1, QTableWidgetItem(fmt))
-        
-        btn = QPushButton("Default" if not clr else "")
-        if clr: btn.setStyleSheet(f"background-color: {clr}; border: 1px solid #555;")
-        btn.setProperty("colour", clr)
-        btn.clicked.connect(lambda: self.pick_event_colour(btn))
-        self.event_table.setCellWidget(row, 2, btn)
 
     def pick_event_colour(self, btn):
         current = QColor(btn.property("colour") or "#ffffff")
@@ -119,10 +165,11 @@ class SettingsDialogue(QDialog):
 
     def add_new_event(self):
         cmd, ok = QInputDialog.getText(self, "Add Event", "IRC Command:")
-        if ok and cmd: self.add_table_row(cmd.upper(), "", "")
+        if ok and cmd: self.add_text_event_row(cmd.upper(), "", cmd.upper())
 
     def remove_event(self):
-        self.event_table.removeRow(self.event_table.currentRow())
+        row = self.event_table.currentRow()
+        if row >= 0: self.event_table.removeRow(row)
 
     def setup_appearance_tab(self):
         tab = QWidget()
@@ -257,10 +304,9 @@ class SettingsDialogue(QDialog):
     def get_table_data_v2(self):
         data = {}
         for r in range(self.event_table.rowCount()):
-            it_cmd, it_fmt = self.event_table.item(r, 0), self.event_table.item(r, 1)
-            btn_clr = self.event_table.cellWidget(r, 2)
-            if it_cmd and it_fmt and btn_clr:
-                c, f = it_cmd.text().strip().upper(), it_fmt.text().strip()
-                clr = btn_clr.property("colour")
-                if c: data[c] = {"fmt": f, "colour": clr}
+            it_name, it_fmt = self.event_table.item(r, 0), self.event_table.item(r, 1)
+            if it_name and it_fmt:
+                cmd = it_name.data(Qt.UserRole)
+                fmt = it_fmt.text().strip()
+                if cmd: data[cmd] = {"fmt": fmt, "colour": ""}
         return data

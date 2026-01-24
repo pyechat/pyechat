@@ -130,7 +130,13 @@ class IRCClient(QObject):
             tags, source, command, args = self.parse_message(line)
             if not command: continue
 
-            sender = source.split('!')[0] if source else self.server
+            sender = self.server
+            if source:
+                if '!' in source:
+                    sender = source.split('!')[0]
+                    tags['host'] = source.split('!', 1)[1]
+                else:
+                    sender = source
             # Emit generic event for dynamic handling in UI
             self.event_received.emit(command, sender, args, tags)
 
