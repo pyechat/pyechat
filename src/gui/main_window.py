@@ -5,7 +5,7 @@ import datetime
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, 
                              QListWidget, QTextBrowser, QLabel, QMenu, 
                              QTreeWidget, QTreeWidgetItem, QApplication, 
-                             QSplitter, QPlainTextEdit)
+                             QSplitter, QPlainTextEdit, QSizePolicy)
 from PyQt5.QtGui import QIcon, QTextCursor, QFont, QColor, QPalette
 from PyQt5.QtCore import Qt, QTimer
 from src.irc.irc_client import IRCClient
@@ -275,6 +275,8 @@ class MainWindow(QMainWindow):
         
         self.topic = QLabel("")
         self.topic.setObjectName("topic")
+        self.topic.setMinimumWidth(0)
+        self.topic.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
         self.chat = QTextBrowser()
         self.chat.setReadOnly(True)
         self.chat.setOpenExternalLinks(True)
@@ -517,6 +519,7 @@ class MainWindow(QMainWindow):
         if buf["nicks"]:
             topic_text = f"({len(buf['nicks'])}) {topic_text}"
         self.topic.setText(topic_text)
+        self.topic.setToolTip(buf["topic"] or target)
         self.render_nick_list()
         
         # Status Bar Info
@@ -975,7 +978,9 @@ class MainWindow(QMainWindow):
         self.setup_buffer(nw, chan)
         self.add_tree_item(nw, chan)
         self.buffers[(nw, chan)]["topic"] = topic
-        if self.current_nw == nw and self.current_target == chan: self.topic.setText(topic)
+        if self.current_nw == nw and self.current_target == chan:
+            self.topic.setText(topic)
+            self.topic.setToolTip(topic)
 
     def on_disconnect(self, nw):
         self.on_message(nw, "", f"*** Disconnected from {nw}")
