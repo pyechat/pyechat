@@ -37,6 +37,10 @@ class NetworkEditDialogue(QDialog):
         )
         self.auto_cmds.setMaximumHeight(80)
 
+        # OperServ nick (optional) - used by OperServ command submenu
+        self.operserv = QLineEdit(nw.get('operserv', 'OperServ'))
+        self.layout.addRow("OperServ nick:", self.operserv)
+
         self.layout.addRow("Name:", self.name)
         self.layout.addRow("Host:", self.host)
         self.layout.addRow("Port:", self.port)
@@ -69,6 +73,7 @@ class NetworkEditDialogue(QDialog):
             "sasl_method": self.sasl_method.currentText() if self.sasl_method.currentText() != "None" else None,
             "sasl_user": self.sasl_user.text(),
             "sasl_pass": self.sasl_pass.text(),
-            "auto_commands": [l.strip() for l in self.auto_cmds.toPlainText().split('\n') if l.strip()]
+            "auto_commands": [l.strip() for l in self.auto_cmds.toPlainText().split('\n') if l.strip()],
+            "operserv": self.operserv.text().strip() or None
         })
         super().accept()

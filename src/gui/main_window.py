@@ -749,6 +749,29 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         oper_menu.addSeparator()
         oper_menu.addAction("Send raw operator command...").triggered.connect(lambda: self._oper_raw())
 
+        # OperServ submenu (templates sent to service nick as PRIVMSG)
+        operserv = menu.addMenu("OperServ Commands")
+        def _tmpl_send(tmpl):
+            self._operserv_prompt_and_send(tmpl)
+        # Common OperServ templates (editable by user before send)
+        operserv.addAction("KLINE").triggered.connect(lambda: _tmpl_send("KLINE <mask> :<reason>"))
+        operserv.addAction("UNKLINE").triggered.connect(lambda: _tmpl_send("UNKLINE <mask>"))
+        operserv.addAction("GLINE").triggered.connect(lambda: _tmpl_send("GLINE <mask> :<reason>"))
+        operserv.addAction("UNGLINE").triggered.connect(lambda: _tmpl_send("UNGLINE <mask>"))
+        operserv.addAction("ZLINE").triggered.connect(lambda: _tmpl_send("ZLINE <mask> :<reason>"))
+        operserv.addAction("SHUN").triggered.connect(lambda: _tmpl_send("SHUN <mask> :<reason>"))
+        operserv.addAction("UNSHUN").triggered.connect(lambda: _tmpl_send("UNSHUN <mask>"))
+        operserv.addAction("AKILL ADD").triggered.connect(lambda: _tmpl_send("AKILL ADD <mask> :<reason>"))
+        operserv.addAction("AKILL DEL").triggered.connect(lambda: _tmpl_send("AKILL DEL <mask>"))
+        operserv.addAction("KILL").triggered.connect(lambda: _tmpl_send("KILL <nick> :<reason>"))
+        operserv.addAction("SGLINE").triggered.connect(lambda: _tmpl_send("SGLINE <mask> :<reason>"))
+        operserv.addAction("SHUTDOWN").triggered.connect(lambda: _tmpl_send("SHUTDOWN"))
+        operserv.addAction("HELP").triggered.connect(lambda: _tmpl_send("HELP <command>"))
+        operserv.addAction("INFO").triggered.connect(lambda: _tmpl_send("INFO <object>"))
+        operserv.addAction("LIST").triggered.connect(lambda: _tmpl_send("LIST <type>"))
+        operserv.addAction("Add raw OperServ command...").triggered.connect(lambda: self._operserv_prompt_and_send("").__repr__())
+
+
     def _oper_become(self):
         from PyQt5.QtWidgets import QInputDialog
         user, ok = QInputDialog.getText(self, "Become OPER", "Operator username:")
@@ -812,9 +835,31 @@ class MainWindow(QMainWindow, EventHandlerMixin):
 
     def _oper_raw(self):
         from PyQt5.QtWidgets import QInputDialog
-        cmd, ok = QInputDialog.getText(self, "Raw Operator Command", "IRC command:")
+        cmd, ok = QInputDialog.getText(self, "Raw Operator Command", "IRC command:" )
         if not ok or not cmd: return
         self._oper_confirm_and_send(cmd, warn=True)
+
+    def _operserv_prompt_and_send(self, template):
+        from PyQt5.QtWidgets import QInputDialog
+        service = None
+        try:
+            nwcfg = next((n for n in self.settings.get('networks', []) if n.get('name') == self.current_nw), {})
+            service = nwcfg.get('operserv') if nwcfg else None
+        except Exception:
+            service = None
+        if not service:
+            service = 'OperServ'
+        prompt, ok = QInputDialog.getText(self, "OperServ Command", "Edit command to send:", text=template)
+        if not ok or not prompt.strip(): return
+        # Send as PRIVMSG to service nick
+        cmd = f"PRIVMSG {service} :{prompt}"
+        from PyQt5.QtWidgets import QMessageBox
+        if QMessageBox.warning(self, "Confirm", f"Send to {service}:\n{prompt}", QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
+            try:
+                self.clients[self.current_nw].send_command(cmd)
+                self.on_message(self.current_nw, self.current_target or "", f"*** Sent OperServ command to {service}: {prompt}")
+            except Exception as e:
+                self.on_message(self.current_nw, self.current_target or "", f"*** Error sending OperServ command: {e}")
 
     def _oper_confirm_and_send(self, cmd, warn=False):
         from PyQt5.QtWidgets import QMessageBox
