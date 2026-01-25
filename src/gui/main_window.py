@@ -973,30 +973,34 @@ class MainWindow(QMainWindow, EventHandlerMixin):
                 nicks_in_channel = [n.lstrip(prefix_chars).lower() for n in buf.get("nicks", [])]
                 
                 if word.lower() in nicks_in_channel:
-                    # Found a valid nickname token — perform some additional checks to avoid
-                    # accidental matches inside URLs or other text. Prefer explicit
-                    # nickname markers (e.g. surrounding < and >) or bold formatting used
-                    # when rendering nicknames.
+                    # Found a valid nickname token. Show the nick context menu when
+                    # the clicked token is a standalone token (bounded by separators), or
+                    # when it's rendered clearly as a nick (surrounded by <> or bold).
                     start, end = cursor.selectionStart(), cursor.selectionEnd()
                     doc_text = self.chat.toPlainText()
                     char_before = doc_text[start-1] if start > 0 else ''
                     char_after = doc_text[end] if end < len(doc_text) else ''
 
-                    # If nickname is wrapped like <nick> in the chat, accept it.
-                    if char_before == '<' and char_after == '>':
+                    # Acceptable boundary characters to reduce false positives
+                    pre_ok = (char_before == '' or char_before.isspace() or char_before in "<([\"'`-–—")
+                    post_ok = (char_after == '' or char_after.isspace() or char_after in ">)] ,.:;!?\"'`")
+
+                    if pre_ok and post_ok:
                         self.show_nick_menu_for_name(word, pos)
                         return
 
-                    # Otherwise, check the text formatting at the cursor position
+                    # Fallback: accept explicit bracketed nicks or bold formatting
                     fmt = cursor.charFormat()
                     try:
+                        if char_before == '<' and char_after == '>':
+                            self.show_nick_menu_for_name(word, pos)
+                            return
                         if fmt.fontWeight() >= QFont.Bold:
                             self.show_nick_menu_for_name(word, pos)
                             return
                     except Exception:
                         pass
-                    # No strong indication this was a nickname click; fall through to
-                    # the default context menu instead of showing the nick menu.
+                    # Otherwise fall through to the default chat context menu.
         
         # Not a nickname: show default menu with copy option, and channel management if in a channel
         menu = QMenu()
