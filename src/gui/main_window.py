@@ -423,7 +423,7 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         sender = None
         if msg.startswith('<') and '>' in msg:
             sender = msg[1:msg.find('>')]
-            content = msg[msg.find('>')+1:]
+            content = msg[msg.find('>')+1:]  # DEBUG
 
             # Track user activity for smart filtering
             if sender and target:
@@ -489,8 +489,9 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             bg, border = self.settings.get("hl_bg", "rgba(255, 204, 0, 0.1)"), self.settings.get("hl_border", "#ffcc00")
             final_line = f'<div style="background-color: {bg}; border-left: 3px solid {border}; padding-left: 5px;">{ts}{formatted_msg}</div>'
         else:
-            style = f' style="color: {tags["fmt_color"]};"' if tags.get("fmt_color") else ""
-            final_line = f'<div{style}>{ts}{formatted_msg}</div>'
+            # Explicitly set background to transparent and clear borders to prevent CSS inheritance
+            color_style = f"color: {tags['fmt_color']}; " if tags.get("fmt_color") else ""
+            final_line = f'<div style="{color_style}background-color: transparent; border-left: none; padding-left: 0px;">{ts}{formatted_msg}</div>'
 
         buf = self.buffers[(nw, target)]
         buf["messages"].append(final_line)
@@ -546,7 +547,10 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         if (self.current_nw, self.current_target) in updates:
             bar = self.chat.verticalScrollBar()
             at_bottom = bar.value() >= bar.maximum() - 20
-            self.chat.append("".join(updates[(self.current_nw, self.current_target)]))
+            # Use setHtml instead of append to avoid CSS inheritance issues
+            buf = self.buffers.get((self.current_nw, self.current_target))
+            if buf and buf["messages"]:
+                self.chat.setHtml("".join(buf["messages"]))
             if at_bottom: self.chat.moveCursor(QTextCursor.End)
 
     def flush_nicks(self):
