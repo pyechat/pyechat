@@ -2,9 +2,9 @@ from PyQt5.QtWidgets import QPlainTextEdit
 from PyQt5.QtGui import QTextCursor
 from PyQt5.QtCore import Qt
 
-INPUT_MIN_HEIGHT = 30
-INPUT_MAX_HEIGHT = 85
-INPUT_PADDING = 12
+INPUT_MIN_HEIGHT = 40
+INPUT_MAX_HEIGHT = 120
+INPUT_PADDING = 14
 
 NICK_PREFIXES = ('~', '&', '@', '%', '+')
 
