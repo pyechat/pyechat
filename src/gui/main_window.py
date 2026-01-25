@@ -117,8 +117,11 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.plugin_loader = PluginLoader(self)
         QTimer.singleShot(500, self.plugin_loader.load_all)
 
+        # Backwards-compatible scheduling of network list. Also ensure it opens when
+        # the main window is first shown in case earlier scheduling was missed.
         if not self.settings.get("skip_network_list", False):
             QTimer.singleShot(NETWORK_LIST_DELAY_MS, self.openNetworkListDialogue)
+            self._open_network_list_on_show = True
 
     def load_settings(self):
         settings_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'settings.json'))
@@ -852,5 +855,13 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             self.clients[self.current_nw].send_command(cmd)
 
     def openNetworkListDialogue(self): NetworkListDialogue(self).exec_()
+
+    def showEvent(self, event):
+        """Ensure Network List opens on first show if configured."""
+        super().showEvent(event)
+        if getattr(self, '_open_network_list_on_show', False):
+            self._open_network_list_on_show = False
+            QTimer.singleShot(100, self.openNetworkListDialogue)
+
     def openSettingsDialogue(self):
         if SettingsDialogue(self, self.settings).exec_(): self.save_settings(); self.apply_theme()
