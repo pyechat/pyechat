@@ -510,7 +510,38 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         c = self.clients[self.current_nw]
         if txt.startswith('/'):
             parts = txt[1:].split(' ', 1)
-            cmd, args = parts[0].upper(), parts[1] if len(parts) > 1 else ""
+            raw_cmd, args = parts[0], parts[1] if len(parts) > 1 else ""
+            cmd = raw_cmd.upper()
+
+            # Short command aliases
+            COMMAND_ALIASES = {
+                'J': 'JOIN', 'JOIN': 'JOIN',
+                'NS': 'NICKSERV', # kept for compatibility, handled below
+            }
+
+            # Common services aliases -> map to service nick
+            SERVICE_ALIASES = {
+                'NS': 'NickServ', 'OS': 'OperServ', 'BS': 'BotServ', 'CS': 'ChanServ',
+                'MS': 'MemoServ', 'HS': 'HostServ'
+            }
+
+            # Expand simple aliases
+            if cmd in COMMAND_ALIASES:
+                cmd = COMMAND_ALIASES[cmd]
+
+            # If service alias, send PRIVMSG to that service
+            if cmd in SERVICE_ALIASES:
+                service = SERVICE_ALIASES[cmd]
+                if args:
+                    c.send_command(f"PRIVMSG {service} :{args}")
+                    # Also display locally in a buffer for the service
+                    self.on_message(self.current_nw, service, f"<{c.nickname}> {args}")
+                else:
+                    # No args -> open a query buffer for the service
+                    self.switch_buffer(self.current_nw, service)
+                self.input.clear()
+                return
+
             if cmd == "JOIN": c.send_command(f"JOIN {args}")
             elif cmd == "EXEC": self.handle_exec_command(args)
             elif cmd in ["MSG", "QUERY"]:
@@ -531,7 +562,11 @@ class MainWindow(QMainWindow, EventHandlerMixin):
                     self.on_message(self.current_nw, self.current_target, f"<{c.nickname}> {info}")
                 except Exception as e:
                     self.on_message(self.current_nw, self.current_target, f"*** Error: {e}")
-            else: c.send_command(txt[1:])
+            else:
+                # Fallback: send raw command to server
+                c.send_command(txt[1:])
+            self.input.clear()
+            return
         elif self.current_target:
             c.send_command(f"PRIVMSG {self.current_target} :{txt}")
             self.on_message(self.current_nw, self.current_target, f"<{c.nickname}> {txt}")
