@@ -16,6 +16,19 @@ class ChannelManagementDialogue(QDialog):
         self.ban_entries = []
         self.setup_ui()
         self.connect_signals()
+        # Populate initial values: try to get cached topic from parent buffer and request live values
+        try:
+            # If parent is MainWindow, it stores buffers with topic
+            parent = self.parent()
+            if hasattr(parent, 'buffers') and (self.network_name, self.channel) in parent.buffers:
+                topic = parent.buffers[(self.network_name, self.channel)].get('topic')
+                if topic:
+                    self.topic_edit.setText(topic)
+            # Request fresh values from server
+            self.client.send_command(f"TOPIC {self.channel}")
+            self.client.send_command(f"MODE {self.channel}")
+        except Exception:
+            pass
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -66,15 +79,21 @@ class ChannelManagementDialogue(QDialog):
         self.refresh_btn.clicked.connect(self.refresh_banlist)
         self.add_ban_btn.clicked.connect(self.add_ban)
         self.remove_ban_btn.clicked.connect(self.remove_selected)
-        # Hook into client signals
+        # Hook into client signals for banlist, topic and modes
         self.client.received_banlist.connect(self._on_ban_item)
         self.client.received_banlist_end.connect(self._on_ban_end)
+        self.client.received_topic.connect(self._on_topic_reply)
+        self.client.received_topic_meta.connect(self._on_topic_meta)
+        self.client.received_channel_modes.connect(self._on_channel_modes)
 
     def closeEvent(self, event):
         # Disconnect signals
         try:
             self.client.received_banlist.disconnect(self._on_ban_item)
             self.client.received_banlist_end.disconnect(self._on_ban_end)
+            self.client.received_topic.disconnect(self._on_topic_reply)
+            self.client.received_topic_meta.disconnect(self._on_topic_meta)
+            self.client.received_channel_modes.disconnect(self._on_channel_modes)
         except Exception:
             pass
         super().closeEvent(event)
@@ -95,6 +114,25 @@ class ChannelManagementDialogue(QDialog):
             return
         self.client.send_command(f"MODE {self.channel} {m}")
         self.status_label.setText("Setting modes...")
+
+    def _on_topic_reply(self, chan, topic):
+        if chan != self.channel: return
+        # Populate the topic field
+        self.topic_edit.setText(topic)
+        self.status_label.setText("Topic loaded")
+
+    def _on_topic_meta(self, chan, setter, ts):
+        if chan != self.channel: return
+        try:
+            ts_text = datetime.datetime.fromtimestamp(int(ts)).strftime('%Y-%m-%d %H:%M') if ts else ''
+            self.status_label.setText(f"Topic set by {setter} at {ts_text}")
+        except Exception:
+            self.status_label.setText(f"Topic set by {setter}")
+
+    def _on_channel_modes(self, chan, modes):
+        if chan != self.channel: return
+        self.mode_edit.setText(modes)
+        self.status_label.setText("Channel modes loaded")
 
     def refresh_banlist(self):
         self.ban_entries = []
