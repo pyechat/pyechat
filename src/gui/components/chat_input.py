@@ -26,6 +26,32 @@ class ChatInput(QPlainTextEdit):
         if hasattr(self, '_tab_state'):
             delattr(self, '_tab_state')
         
+        # Input history navigation (up/down)
+        if event.key() == Qt.Key_Up:
+            prev = None
+            try:
+                prev = self.main_window.history_prev()
+            except Exception:
+                prev = None
+            if prev is not None:
+                self.setPlainText(prev)
+                cursor = self.textCursor()
+                cursor.movePosition(QTextCursor.End)
+                self.setTextCursor(cursor)
+            return
+        if event.key() == Qt.Key_Down:
+            nxt = None
+            try:
+                nxt = self.main_window.history_next()
+            except Exception:
+                nxt = None
+            if nxt is not None:
+                self.setPlainText(nxt)
+                cursor = self.textCursor()
+                cursor.movePosition(QTextCursor.End)
+                self.setTextCursor(cursor)
+            return
+        
         if event.key() in [Qt.Key_Return, Qt.Key_Enter]:
             if event.modifiers() & Qt.ShiftModifier:
                 super().keyPressEvent(event)

@@ -72,7 +72,36 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.nick_timer = QTimer()
         self.nick_timer.setSingleShot(True)
         self.nick_timer.timeout.connect(self.flush_nicks)
-        
+
+        # Input history (for up/down navigation)
+        self.input_history = []
+        self.history_index = 0
+        self.history_draft = ""
+
+    def history_prev(self):
+        """Return previous history entry, or None."""
+        if not self.input_history: return None
+        # if at end, store draft
+        if self.history_index == len(self.input_history):
+            try:
+                self.history_draft = self.input.toPlainText()
+            except Exception:
+                self.history_draft = ""
+        if self.history_index > 0:
+            self.history_index -= 1
+            return self.input_history[self.history_index]
+        return None
+
+    def history_next(self):
+        """Return next history entry, or draft, or None."""
+        if not self.input_history: return None
+        if self.history_index < len(self.input_history) - 1:
+            self.history_index += 1
+            return self.input_history[self.history_index]
+        elif self.history_index == len(self.input_history) - 1:
+            self.history_index = len(self.input_history)
+            return self.history_draft
+        return None        
         self.msg_queue = []
         self.msg_timer = QTimer()
         self.msg_timer.setInterval(MESSAGE_BATCH_INTERVAL_MS)
@@ -209,6 +238,15 @@ class MainWindow(QMainWindow, EventHandlerMixin):
                     self.tree.setFont(f)
                 if hasattr(self, 'topic'):
                     self.topic.setFont(f)
+                # Also re-render existing chat contents to ensure font is used
+                # by re-setting the HTML/text which forces a reflow using new font
+                for buf_key, buf in self.buffers.items():
+                    if buf['messages'] and self.current_nw == buf_key[0] and self.current_target == buf_key[1]:
+                        # current buffer: re-apply HTML
+                        self.chat.setUpdatesEnabled(False)
+                        self.chat.setHtml("".join(buf['messages']))
+                        self.chat.moveCursor(QTextCursor.End)
+                        self.chat.setUpdatesEnabled(True)
             except Exception:
                 pass
 
@@ -528,6 +566,15 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         txt = self.input.toPlainText().strip()
         if not txt or not self.current_nw or self.current_nw not in self.clients: return
         c = self.clients[self.current_nw]
+
+        # Store in history (non-empty commands and messages)
+        def _add_history(line):
+            if not line: return
+            if not self.input_history or self.input_history[-1] != line:
+                self.input_history.append(line)
+            self.history_index = len(self.input_history)
+            self.history_draft = ""
+
         if txt.startswith('/'):
             parts = txt[1:].split(' ', 1)
             raw_cmd, args = parts[0], parts[1] if len(parts) > 1 else ""
@@ -554,10 +601,9 @@ class MainWindow(QMainWindow, EventHandlerMixin):
                 service = SERVICE_ALIASES[cmd]
                 if args:
                     c.send_command(f"PRIVMSG {service} :{args}")
-                    # Also display locally in a buffer for the service
                     self.on_message(self.current_nw, service, f"<{c.nickname}> {args}")
+                    _add_history(txt)
                 else:
-                    # No args -> open a query buffer for the service
                     self.switch_buffer(self.current_nw, service)
                 self.input.clear()
                 return
@@ -573,6 +619,7 @@ class MainWindow(QMainWindow, EventHandlerMixin):
                 if self.current_target:
                     c.send_command(f"PRIVMSG {self.current_target} :\x01ACTION {args}\x01")
                     self.on_message(self.current_nw, self.current_target, f"* {c.nickname} {args}")
+                    _add_history(txt)
             elif cmd == "SYSINFO":
                 # Built-in system info command - send formatted info to the current target (channel or user)
                 try:
@@ -587,16 +634,24 @@ class MainWindow(QMainWindow, EventHandlerMixin):
                         c.send_command(f"PRIVMSG {target} :{info}")
                         # Also display locally
                         self.on_message(self.current_nw, target, f"<{c.nickname}> {info}")
+                        _add_history(txt)
                 except Exception as e:
                     self.on_message(self.current_nw, self.current_target or "", f"*** Error: {e}")
             else:
                 # Fallback: send raw command to server
                 c.send_command(txt[1:])
+                _add_history(txt)
             self.input.clear()
             return
         elif self.current_target:
             c.send_command(f"PRIVMSG {self.current_target} :{txt}")
             self.on_message(self.current_nw, self.current_target, f"<{c.nickname}> {txt}")
+            # Add to history for editing
+            if txt:
+                if not self.input_history or self.input_history[-1] != txt:
+                    self.input_history.append(txt)
+                self.history_index = len(self.input_history)
+                self.history_draft = ""
         self.input.clear()
 
     def on_nick(self, nw, data):
