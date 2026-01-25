@@ -80,6 +80,19 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.msg_timer.timeout.connect(self.flush_messages)
         self.msg_timer.start()
 
+        # Re-apply theme after window is fully initialized
+        QTimer.singleShot(100, self.apply_theme)
+
+        # Load scripts/plugins
+        self.plugin_loader = PluginLoader(self)
+        QTimer.singleShot(500, self.plugin_loader.load_all)
+
+        # Backwards-compatible scheduling of network list. Also ensure it opens when
+        # the main window is first shown in case earlier scheduling was missed.
+        if not self.settings.get("skip_network_list", False):
+            QTimer.singleShot(NETWORK_LIST_DELAY_MS, self.openNetworkListDialogue)
+            self._open_network_list_on_show = True
+
         # Input history (for up/down navigation)
         self.input_history = []
         self.history_index = 0
@@ -110,18 +123,6 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             return self.history_draft
         return None
 
-        # Re-apply theme after window is fully initialized
-        QTimer.singleShot(100, self.apply_theme)
-
-        # Load scripts/plugins
-        self.plugin_loader = PluginLoader(self)
-        QTimer.singleShot(500, self.plugin_loader.load_all)
-
-        # Backwards-compatible scheduling of network list. Also ensure it opens when
-        # the main window is first shown in case earlier scheduling was missed.
-        if not self.settings.get("skip_network_list", False):
-            QTimer.singleShot(NETWORK_LIST_DELAY_MS, self.openNetworkListDialogue)
-            self._open_network_list_on_show = True
 
     def load_settings(self):
         settings_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'settings.json'))
@@ -784,9 +785,30 @@ class MainWindow(QMainWindow, EventHandlerMixin):
                 nicks_in_channel = [n.lstrip(prefix_chars).lower() for n in buf.get("nicks", [])]
                 
                 if word.lower() in nicks_in_channel:
-                    # Found a valid nickname, show context menu
-                    self.show_nick_menu_for_name(word, pos)
-                    return
+                    # Found a valid nickname token — perform some additional checks to avoid
+                    # accidental matches inside URLs or other text. Prefer explicit
+                    # nickname markers (e.g. surrounding < and >) or bold formatting used
+                    # when rendering nicknames.
+                    start, end = cursor.selectionStart(), cursor.selectionEnd()
+                    doc_text = self.chat.toPlainText()
+                    char_before = doc_text[start-1] if start > 0 else ''
+                    char_after = doc_text[end] if end < len(doc_text) else ''
+
+                    # If nickname is wrapped like <nick> in the chat, accept it.
+                    if char_before == '<' and char_after == '>':
+                        self.show_nick_menu_for_name(word, pos)
+                        return
+
+                    # Otherwise, check the text formatting at the cursor position
+                    fmt = cursor.charFormat()
+                    try:
+                        if fmt.fontWeight() >= QFont.Bold:
+                            self.show_nick_menu_for_name(word, pos)
+                            return
+                    except Exception:
+                        pass
+                    # No strong indication this was a nickname click; fall through to
+                    # the default context menu instead of showing the nick menu.
         
         # Not a nickname: show default menu with copy option, and channel management if in a channel
         menu = QMenu()

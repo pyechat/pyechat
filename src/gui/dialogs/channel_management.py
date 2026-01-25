@@ -2,7 +2,7 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
                              QPushButton, QTableWidget, QTableWidgetItem, QHeaderView,
                              QInputDialog, QMessageBox)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 import datetime
 
 class ChannelManagementDialogue(QDialog):
@@ -27,6 +27,8 @@ class ChannelManagementDialogue(QDialog):
             # Request fresh values from server
             self.client.send_command(f"TOPIC {self.channel}")
             self.client.send_command(f"MODE {self.channel}")
+            # Also request the current ban list so the dialog is populated immediately
+            QTimer.singleShot(50, self.refresh_banlist)
         except Exception:
             pass
 

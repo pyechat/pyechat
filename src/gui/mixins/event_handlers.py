@@ -298,18 +298,10 @@ class EventHandlerMixin:
             elif char == "l" and action == "+":
                 arg_idx += 1
         
-        # Post a human-readable mode change message into the affected channel (if it is a channel)
-        if chan and (chan.startswith('#') or chan.startswith('&')):
-            try:
-                self.on_message(nw, chan, f"*** {sender} sets mode: {mode}")
-            except Exception:
-                pass
-        else:
-            # Non-channel modes should be shown in the status buffer
-            try:
-                self.on_message(nw, "", f"*** {sender} sets mode: {mode}")
-            except Exception:
-                pass
+        # Mode messages are formatted and displayed via the generic event handler
+        # (on_event_received) so avoid double-posting here. We still update nick
+        # prefixes and refresh the nick list above.
+        pass
         
         if self.current_nw == nw and self.current_target == chan:
             self.nick_update_queued.add((nw, chan))
