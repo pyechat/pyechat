@@ -465,8 +465,16 @@ class MainWindow(QMainWindow, EventHandlerMixin):
                 formatted_msg = f'<span style="color: {colour}; font-weight: bold;">&lt;{display_sender}&gt;</span> {irc_to_html(content)}'
             else:
                 formatted_msg = f'&lt;{display_sender}&gt; {irc_to_html(content)}'
-            if self.settings.get("highlight_mentions", True) and self.clients[nw].nickname.lower() in msg.lower():
-                is_highlight = True
+            # Only highlight if someone ELSE mentions your nick (not when you send the message yourself)
+            # Strip any prefix characters from sender for comparison
+            if self.settings.get("highlight_mentions", True) and nw in self.clients:
+                prefix_chars = ''.join(NICK_PREFIXES)
+                clean_sender = sender.lstrip(prefix_chars)
+                my_nick = self.clients[nw].nickname
+                # If you're NOT the sender AND your nick is in the message content
+                if clean_sender.lower() != my_nick.lower():
+                    if my_nick.lower() in content.lower():
+                        is_highlight = True
         else:
             formatted_msg = irc_to_html(msg)
 
