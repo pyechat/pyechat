@@ -344,7 +344,10 @@ class SettingsDialogue(QDialog):
 
     def on_change_font(self):
         font, ok = QFontDialog.getFont(self.parent.chat.font(), self)
-        if ok: self.settings["font"] = font.toString()
+        if ok:
+            self.settings["font"] = font.toString()
+            if hasattr(self, 'preview_chat'):
+                self.preview_chat.setFont(font)
 
     def setup_identity_tab(self):
         tab = QWidget()
@@ -373,6 +376,7 @@ class SettingsDialogue(QDialog):
             "highlight_mentions": self.highlight.isChecked(),
             "conn_info_level": self.conn_info.currentText(),
             "completion_suffix": self.comp_suffix.text(),
+            "font": self.settings.get("font", ""),
             "events_v2": self.get_table_data_v2(),
             "default_nick": self.default_nick.text(),
             "real_name": self.real_name.text()

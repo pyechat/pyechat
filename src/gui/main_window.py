@@ -192,6 +192,26 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         """
         self.setStyleSheet(style)
 
+        # Apply font if configured
+        font_str = s.get('font')
+        if font_str:
+            try:
+                f = QFont()
+                f.fromString(font_str)
+                # Apply to major widgets
+                if hasattr(self, 'chat'):
+                    self.chat.setFont(f)
+                if hasattr(self, 'input'):
+                    self.input.setFont(f)
+                if hasattr(self, 'nicks'):
+                    self.nicks.setFont(f)
+                if hasattr(self, 'tree'):
+                    self.tree.setFont(f)
+                if hasattr(self, 'topic'):
+                    self.topic.setFont(f)
+            except Exception:
+                pass
+
     def setup_ui(self):
         self.splitter = QSplitter(Qt.Horizontal)
         self.splitter.setChildrenCollapsible(False)
