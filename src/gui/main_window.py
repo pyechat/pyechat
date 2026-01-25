@@ -522,6 +522,15 @@ class MainWindow(QMainWindow, EventHandlerMixin):
                 if self.current_target:
                     c.send_command(f"PRIVMSG {self.current_target} :\x01ACTION {args}\x01")
                     self.on_message(self.current_nw, self.current_target, f"* {c.nickname} {args}")
+            elif cmd == "SYSINFO":
+                # Built-in system info command - print a nicely formatted line into the current buffer
+                try:
+                    from src.gui.utils.sysinfo import get_sysinfo
+                    info = get_sysinfo()
+                    # print as if from current nick
+                    self.on_message(self.current_nw, self.current_target, f"<{c.nickname}> {info}")
+                except Exception as e:
+                    self.on_message(self.current_nw, self.current_target, f"*** Error: {e}")
             else: c.send_command(txt[1:])
         elif self.current_target:
             c.send_command(f"PRIVMSG {self.current_target} :{txt}")
@@ -546,6 +555,20 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             self.nick_update_queued.add((nw, chan))
             if not self.nick_timer.isActive(): self.nick_timer.start(100)
 
+    def show_sysinfo(self, target=None):
+        """Gather and display SYSINFO in the specified buffer (or current)."""
+        nw = self.current_nw
+        if not nw or nw not in self.clients:
+            return
+        target = target or self.current_target or ""
+        try:
+            from src.gui.utils.sysinfo import get_sysinfo
+            info = get_sysinfo()
+            nick = self.clients[nw].nickname
+            self.on_message(nw, target, f"<{nick}> {info}")
+        except Exception as e:
+            self.on_message(nw, target, f"*** Error gathering system info: {e}")
+
     def on_tree_context_menu(self, pos):
         item = self.tree.itemAt(pos)
         if not item: return
@@ -558,6 +581,9 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             nw, target = p.text(0), item.text(0)
             if target.startswith(('#', '&')): menu.addAction("Part").triggered.connect(lambda: self.clients[nw].send_command(f"PART {target}"))
             menu.addAction("Close").triggered.connect(lambda: (self.remove_tree_item(nw, target), self.switch_buffer(nw, "") if self.current_target == target else None))
+            # Provide quick sysinfo on channel (tree context)
+            if target.startswith(('#', '&')):
+                menu.addAction("Sysinfo").triggered.connect(lambda: self.show_sysinfo(target))
         menu.exec_(self.tree.mapToGlobal(pos))
 
     def on_nick_context_menu(self, pos):
@@ -572,6 +598,7 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         # Information actions
         menu.addAction("Whois").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"WHOIS {nick} {nick}"))
         menu.addAction("Direct Message").triggered.connect(lambda: self.switch_buffer(self.current_nw, nick))
+        menu.addAction("Sysinfo").triggered.connect(lambda: self.show_sysinfo(self.current_target))
         menu.addSeparator()
         
         # Channel operations (only if in a channel)
@@ -636,11 +663,12 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         menu = QMenu()
         if cursor.hasSelection():
             menu.addAction("Copy").triggered.connect(lambda: QApplication.clipboard().setText(cursor.selectedText()))
-        # Channel management
+        # Channel actions
         from src.gui.dialogs.channel_management import ChannelManagementDialogue
         if self.current_target and self.current_target.startswith(('#', '&')):
             menu.addSeparator()
             menu.addAction("Channel Management").triggered.connect(lambda: ChannelManagementDialogue(self, self.current_nw, self.current_target, self.clients[self.current_nw]).exec_())
+            menu.addAction("Sysinfo").triggered.connect(lambda: self.show_sysinfo(self.current_target))
         menu.exec_(self.chat.mapToGlobal(pos))
     
     def show_nick_menu_for_name(self, nick, pos):
