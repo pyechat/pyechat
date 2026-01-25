@@ -1,6 +1,26 @@
 """Theme presets for PyeChat."""
 
 THEMES = {
+    "IRC Classic": {
+        "bg_colour": "#2b2b2b",
+        "fg_colour": "#e8e8e8",
+        "ts_colour": "#7a7a7a",
+        "hl_bg": "rgba(255, 220, 100, 0.12)",
+        "hl_border": "#ffdc64",
+        "tree_bg": "#1f1f1f",
+        "tree_fg": "#d0d0d0",
+        "tree_sel_bg": "#4a4a4a",
+        "tree_sel_fg": "#ffffff",
+        "nick_bg": "#1f1f1f",
+        "nick_fg": "#d0d0d0",
+        "nick_sel_bg": "#4a4a4a",
+        "nick_sel_fg": "#ffffff",
+        "topic_bg": "#1a1a1a",
+        "topic_fg": "#c0c0c0",
+        "input_bg": "#333333",
+        "input_fg": "#e8e8e8",
+        "input_border": "#4a4a4a",
+    },
     "Dark (Default)": {
         "bg_colour": "#1e1e1e",
         "fg_colour": "#e0e0e0",

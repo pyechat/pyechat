@@ -8,3 +8,14 @@ def get_nick_colour(nick, bg_colour_hex="#ffffff"):
     is_dark_bg = QColor(bg_colour_hex).lightness() < 128
     lightness = 70 if is_dark_bg else 40
     return f"hsl({hue}, 70%, {lightness}%)"
+
+def get_nick_colour_qcolor(nick, bg_colour_hex="#ffffff"):
+    """Return a QColor object for the given nick."""
+    hash_val = int(hashlib.md5(nick.encode()).hexdigest(), 16)
+    hue = hash_val % 360
+    is_dark_bg = QColor(bg_colour_hex).lightness() < 128
+    lightness = 70 if is_dark_bg else 40
+    
+    color = QColor()
+    color.setHsl(hue, int(255 * 0.70), int(255 * lightness / 100))
+    return color

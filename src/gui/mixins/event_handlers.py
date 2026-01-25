@@ -15,8 +15,56 @@ C = {
 }
 
 class EventHandlerMixin:
+    def _should_filter_join_part(self, nw, command, sender, target):
+        """Check if join/part/quit event should be filtered based on smart filtering settings."""
+        # If completely hidden, return True
+        if self.settings.get("hide_join_part", False) and command in ("JOIN", "PART", "QUIT"):
+            return True
+        
+        # If smart filtering is disabled, show all events
+        if not self.settings.get("smart_filter_join_part", True):
+            return False
+        
+        # Don't filter our own join/part
+        if nw in self.clients and sender.lower() == self.clients[nw].nickname.lower():
+            return False
+        
+        # Smart filtering: hide if user hasn't spoken recently
+        filter_seconds = self.settings.get("smart_filter_seconds", 300)
+        key = (nw, target, sender)
+        
+        now = datetime.datetime.now()
+        last_activity = self.recent_activity.get(key)
+        
+        if last_activity:
+            time_diff = (now - last_activity).total_seconds()
+            # If user spoke within the filter window, show the join/part
+            if time_diff < filter_seconds:
+                return False
+        
+        # Filter out the event (user hasn't been active)
+        return True
+    
+    def _track_user_activity(self, nw, target, sender):
+        """Track when a user last spoke in a channel."""
+        if not target:
+            return
+        key = (nw, target, sender)
+        self.recent_activity[key] = datetime.datetime.now()
+    
     def on_event_received(self, nw, command, sender, args, tags):
         events = self.settings.get("events_v2", {})
+        
+        # Check if this event should be filtered
+        target = args[0] if args else ""
+        if command in ("JOIN", "PART", "QUIT"):
+            if self._should_filter_join_part(nw, command, sender, target):
+                # Still process side effects even if we don't display the message
+                if command == "JOIN" and sender.lower() == self.clients[nw].nickname.lower():
+                    self.setup_buffer(nw, target)
+                    if not self.find_item(nw, target): self.add_tree_item(nw, target)
+                    if not self.current_target: self.switch_buffer(nw, target)
+                return
         
         # Fallback for core events if they are not explicitly customised
         if command not in events:

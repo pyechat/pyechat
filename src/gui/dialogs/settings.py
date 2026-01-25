@@ -43,6 +43,19 @@ class SettingsDialogue(QDialog):
         self.nick_colour = QCheckBox(); self.nick_colour.setChecked(self.settings.get("nick_colouring", True))
         self.highlight = QCheckBox(); self.highlight.setChecked(self.settings.get("highlight_mentions", True))
         
+        # Join/Part filtering options
+        self.hide_join_part = QCheckBox()
+        self.hide_join_part.setChecked(self.settings.get("hide_join_part", False))
+        self.hide_join_part.setToolTip("Completely hide all join/part/quit messages")
+        
+        self.smart_filter = QCheckBox()
+        self.smart_filter.setChecked(self.settings.get("smart_filter_join_part", True))
+        self.smart_filter.setToolTip("Hide join/part for users who haven't spoken recently")
+        
+        self.filter_seconds = QLineEdit(str(self.settings.get("smart_filter_seconds", 300)))
+        self.filter_seconds.setFixedWidth(80)
+        self.filter_seconds.setToolTip("Time in seconds to track user activity")
+        
         self.conn_info = QComboBox()
         self.conn_info.addItems(["Minimal", "Standard", "Verbose"])
         self.conn_info.setCurrentText(self.settings.get("conn_info_level", "Standard"))
@@ -53,6 +66,9 @@ class SettingsDialogue(QDialog):
         layout.addRow("Show Timestamps:", self.ts)
         layout.addRow("Timestamp Format:", self.ts_fmt)
         layout.addRow("Show Join/Part/Quit:", self.events)
+        layout.addRow("Hide Join/Part/Quit:", self.hide_join_part)
+        layout.addRow("Smart Filter Join/Part:", self.smart_filter)
+        layout.addRow("Filter Time (seconds):", self.filter_seconds)
         layout.addRow("Auto Reconnect:", self.reconnect)
         layout.addRow("Nick Colouring:", self.nick_colour)
         layout.addRow("Highlight Mentions:", self.highlight)
@@ -342,6 +358,9 @@ class SettingsDialogue(QDialog):
             "show_timestamps": self.ts.isChecked(),
             "ts_format": self.ts_fmt.text(),
             "show_events": self.events.isChecked(),
+            "hide_join_part": self.hide_join_part.isChecked(),
+            "smart_filter_join_part": self.smart_filter.isChecked(),
+            "smart_filter_seconds": int(self.filter_seconds.text()) if self.filter_seconds.text().isdigit() else 300,
             "auto_reconnect": self.reconnect.isChecked(),
             "nick_colouring": self.nick_colour.isChecked(),
             "highlight_mentions": self.highlight.isChecked(),

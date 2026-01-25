@@ -5,14 +5,14 @@ import datetime
 import subprocess
 import shlex
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, 
-                             QListWidget, QTextBrowser, QLabel, QMenu, 
+                             QListWidget, QListWidgetItem, QTextBrowser, QLabel, QMenu, 
                              QTreeWidget, QTreeWidgetItem, QApplication, 
                              QSplitter, QSizePolicy)
 from PyQt5.QtGui import QIcon, QTextCursor, QFont, QColor, QPalette
 from PyQt5.QtCore import Qt, QTimer
 
 from src.irc.irc_client import IRCClient
-from src.gui.utils.colors import get_nick_colour
+from src.gui.utils.colors import get_nick_colour, get_nick_colour_qcolor
 from src.gui.utils.formatters import irc_to_html
 from src.gui.dialogs.network_list import NetworkListDialogue
 from src.gui.dialogs.settings import SettingsDialogue
@@ -40,6 +40,7 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.tree_items = {}
         self.clients = {}
         self.buffers = {}
+        self.recent_activity = {}  # Track recent join/part activity for smart filtering
         
         self.load_settings()
         
@@ -146,16 +147,44 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             palette.setColor(QPalette.HighlightedText, QColor(s.get('nick_sel_fg', '#ffffff')))
             self.nicks.setPalette(palette)
             self.nicks.setAutoFillBackground(True)
-            # Also set stylesheet directly on widget as backup
-            self.nicks.setStyleSheet(f"QListWidget {{ background-color: {nick_bg}; color: {nick_fg}; border: none; }} QListWidget::item {{ color: {nick_fg}; }} QListWidget::item:selected {{ background-color: {s.get('nick_sel_bg', '#E95420')}; color: {s.get('nick_sel_fg', '#ffffff')}; }}")
+            # Don't set item color in stylesheet if nick coloring is enabled, so individual colors can show
+            if s.get("nick_colouring", True):
+                self.nicks.setStyleSheet(f"QListWidget {{ background-color: {nick_bg}; border: none; }} QListWidget::item:selected {{ background-color: {s.get('nick_sel_bg', '#E95420')}; color: {s.get('nick_sel_fg', '#ffffff')}; }}")
+            else:
+                self.nicks.setStyleSheet(f"QListWidget {{ background-color: {nick_bg}; color: {nick_fg}; border: none; }} QListWidget::item {{ color: {nick_fg}; }} QListWidget::item:selected {{ background-color: {s.get('nick_sel_bg', '#E95420')}; color: {s.get('nick_sel_fg', '#ffffff')}; }}")
         
         # Still apply stylesheet to OTHER widgets (chat, input, etc)
         style = f"""
             QMainWindow, QDialog {{ background-color: {bg}; color: {fg}; }}
-            QTextBrowser {{ background-color: {bg}; color: {fg}; border: none; }}
-            QPlainTextEdit {{ background-color: {s.get('input_bg', '#3c3c3c')}; color: {s.get('input_fg', '#ffffff')}; border: 1px solid {s.get('input_border', '#cccccc')}; }}
-            QLabel#topic {{ background-color: {s.get('topic_bg', '#333333')}; color: {s.get('topic_fg', '#ffffff')}; padding: 4px; }}
-            QSplitter::handle {{ background-color: {s.get('border_colour', '#cccccc')}; }}
+            QTextBrowser {{ 
+                background-color: {bg}; 
+                color: {fg}; 
+                border: none; 
+                padding: 4px;
+            }}
+            QPlainTextEdit {{ 
+                background-color: {s.get('input_bg', '#3c3c3c')}; 
+                color: {s.get('input_fg', '#ffffff')}; 
+                border: 1px solid {s.get('input_border', '#cccccc')}; 
+                border-radius: 2px;
+                padding: 4px;
+            }}
+            QLabel#topic {{ 
+                background-color: {s.get('topic_bg', '#333333')}; 
+                color: {s.get('topic_fg', '#ffffff')}; 
+                padding: 6px; 
+                border-bottom: 1px solid {s.get('border_colour', '#3e3e42')};
+            }}
+            QSplitter::handle {{ 
+                background-color: {s.get('border_colour', '#3e3e42')}; 
+                width: 1px;
+            }}
+            QTreeWidget::item {{
+                padding: 3px 2px;
+            }}
+            QListWidget::item {{
+                padding: 2px 4px;
+            }}
         """
         self.setStyleSheet(style)
 
@@ -296,9 +325,15 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         
         formatted_msg = msg
         is_highlight = False
+        sender = None
         if msg.startswith('<') and '>' in msg:
             sender = msg[1:msg.find('>')]
             content = msg[msg.find('>')+1:]
+            
+            # Track user activity for smart filtering
+            if sender and target:
+                self._track_user_activity(nw, target, sender)
+            
             if self.settings.get("nick_colouring", True):
                 colour = get_nick_colour(sender, self.settings.get("bg_colour", "#ffffff"))
                 formatted_msg = f'<span style="color: {colour}; font-weight: bold;">&lt;{sender}&gt;</span> {irc_to_html(content)}'
@@ -366,7 +401,20 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         
         prefix_chars = ''.join(NICK_PREFIXES) + ' '
         sorted_nicks = sorted(buf["nicks"], key=lambda x: (NICK_RANK_MAP.get(x[0], 5), x.lstrip(prefix_chars).lower()))
-        self.nicks.addItems(sorted_nicks)
+        
+        # Apply colors to each nick if nick coloring is enabled
+        if self.settings.get("nick_colouring", True):
+            for nick_with_prefix in sorted_nicks:
+                # Strip prefix to get actual nickname for color calculation
+                clean_nick = nick_with_prefix.lstrip(prefix_chars)
+                nick_color = get_nick_colour_qcolor(clean_nick, self.settings.get("nick_bg", "#1e1e1e"))
+                
+                item = QListWidgetItem(nick_with_prefix)
+                item.setForeground(nick_color)
+                self.nicks.addItem(item)
+        else:
+            self.nicks.addItems(sorted_nicks)
+            
         self.nicks.setUpdatesEnabled(True)
 
     def find_item(self, nw, target): return self.tree_items.get((nw, target))
