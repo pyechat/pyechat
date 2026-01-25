@@ -409,16 +409,36 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         if msg.startswith('<') and '>' in msg:
             sender = msg[1:msg.find('>')]
             content = msg[msg.find('>')+1:]
-            
+
             # Track user activity for smart filtering
             if sender and target:
                 self._track_user_activity(nw, target, sender)
-            
+
+            # If this is a channel message, try to display any status prefix
+            # (e.g., @, +, &, ~) that appears in the nick list so users' status
+            # is visible inline next to their nick in messages.
+            display_sender = sender
+            try:
+                if target and target.startswith(('#', '&')):
+                    buf = self.buffers.get((nw, target), {})
+                    prefix_chars = ''.join(NICK_PREFIXES) + ' '
+                    nicks_in_channel = buf.get('nicks', [])
+                    for n in nicks_in_channel:
+                        raw = n.lstrip(prefix_chars)
+                        if raw.lower() == sender.lower():
+                            # preserve any leading prefix characters
+                            prefix = n[:len(n) - len(raw)]
+                            if prefix:
+                                display_sender = f"{prefix}{sender}"
+                            break
+            except Exception:
+                pass
+
             if self.settings.get("nick_colouring", True):
                 colour = get_nick_colour(sender, self.settings.get("bg_colour", "#ffffff"))
-                formatted_msg = f'<span style="color: {colour}; font-weight: bold;">&lt;{sender}&gt;</span> {irc_to_html(content)}'
+                formatted_msg = f'<span style="color: {colour}; font-weight: bold;">&lt;{display_sender}&gt;</span> {irc_to_html(content)}'
             else:
-                formatted_msg = f'&lt;{sender}&gt; {irc_to_html(content)}'
+                formatted_msg = f'&lt;{display_sender}&gt; {irc_to_html(content)}'
             if self.settings.get("highlight_mentions", True) and self.clients[nw].nickname.lower() in msg.lower():
                 is_highlight = True
         else:
