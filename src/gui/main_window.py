@@ -73,6 +73,13 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.nick_timer.setSingleShot(True)
         self.nick_timer.timeout.connect(self.flush_nicks)
 
+        # Message queue and batching timer (must be initialized early)
+        self.msg_queue = []
+        self.msg_timer = QTimer()
+        self.msg_timer.setInterval(MESSAGE_BATCH_INTERVAL_MS)
+        self.msg_timer.timeout.connect(self.flush_messages)
+        self.msg_timer.start()
+
         # Input history (for up/down navigation)
         self.input_history = []
         self.history_index = 0
@@ -101,13 +108,8 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         elif self.history_index == len(self.input_history) - 1:
             self.history_index = len(self.input_history)
             return self.history_draft
-        return None        
-        self.msg_queue = []
-        self.msg_timer = QTimer()
-        self.msg_timer.setInterval(MESSAGE_BATCH_INTERVAL_MS)
-        self.msg_timer.timeout.connect(self.flush_messages)
-        self.msg_timer.start()
-        
+        return None
+
         # Re-apply theme after window is fully initialized
         QTimer.singleShot(100, self.apply_theme)
 
