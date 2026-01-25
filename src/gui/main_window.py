@@ -214,6 +214,8 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.chat = QTextBrowser()
         self.chat.setReadOnly(True)
         self.chat.setOpenExternalLinks(True)
+        self.chat.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.chat.customContextMenuRequested.connect(self.on_chat_context_menu)
         
         self.input = ChatInput(self)
         
@@ -263,6 +265,7 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         client.received_message.connect(lambda t, m, tags, n=name: self.on_message(n, t, m, tags))
         client.received_nick_list.connect(lambda d, n=name: self.on_nick(n, d))
         client.received_topic.connect(lambda c, t, n=name: self.on_topic(n, c, t))
+        client.received_topic_meta.connect(lambda c, s, ts, n=name: self.on_topic_meta(n, c, s, ts))
         client.parted_channel.connect(lambda c, ni, n=name: self.on_part(n, c, ni))
         client.nick_changed.connect(lambda o, ni, n=name: self.on_nick_change(n, o, ni))
         client.received_kick.connect(lambda c, t, k, r, n=name: self.on_kick(n, c, t, k, r))
@@ -321,7 +324,16 @@ class MainWindow(QMainWindow, EventHandlerMixin):
     def on_message(self, nw, target, msg, tags=None):
         if tags is None: tags = {}
         if not target and self.current_nw == nw: target = self.current_target
+
+        # If the target looks like a hostname (server) and this is not a private message, treat it as network status
+        if target and not target.startswith(('#', '&')) and not tags.get('is_private') and '.' in target:
+            target = ""
+
         self.setup_buffer(nw, target)
+        
+        # Suppress numeric server replies (like [366] End of NAMES) in channel windows
+        if target and target.startswith(('#', '&')) and msg.startswith('[') and len(msg) >= 5 and msg[1:4].isdigit() and msg[4] == ']' and not self.settings.get('show_numeric_replies', False):
+            return
         
         formatted_msg = msg
         is_highlight = False
@@ -546,12 +558,135 @@ class MainWindow(QMainWindow, EventHandlerMixin):
 
     def on_nick_context_menu(self, pos):
         item = self.nicks.itemAt(pos)
-        if not item: return
+        if not item or not self.current_nw or not self.current_target: return
+        
         menu = QMenu()
-        nick = item.text().lstrip(''.join(NICK_PREFIXES) + ' ')
+        nick_with_prefix = item.text()
+        prefix_chars = ''.join(NICK_PREFIXES) + ' '
+        nick = nick_with_prefix.lstrip(prefix_chars)
+        
+        # Information actions
         menu.addAction("Whois").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"WHOIS {nick} {nick}"))
-        menu.addAction("Query").triggered.connect(lambda: self.switch_buffer(self.current_nw, nick))
+        menu.addAction("Direct Message").triggered.connect(lambda: self.switch_buffer(self.current_nw, nick))
+        menu.addSeparator()
+        
+        # Channel operations (only if in a channel)
+        if self.current_target.startswith(('#', '&')):
+            # Op/Deop submenu
+            op_menu = menu.addMenu("Give Operator")
+            op_menu.addAction("Owner (+q)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} +q {nick}"))
+            op_menu.addAction("Admin (+a)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} +a {nick}"))
+            op_menu.addAction("Op (+o)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} +o {nick}"))
+            op_menu.addAction("Half-Op (+h)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} +h {nick}"))
+            op_menu.addAction("Voice (+v)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} +v {nick}"))
+            
+            deop_menu = menu.addMenu("Revoke Operator")
+            deop_menu.addAction("Owner (-q)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} -q {nick}"))
+            deop_menu.addAction("Admin (-a)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} -a {nick}"))
+            deop_menu.addAction("Op (-o)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} -o {nick}"))
+            deop_menu.addAction("Half-Op (-h)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} -h {nick}"))
+            deop_menu.addAction("Voice (-v)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} -v {nick}"))
+            
+            menu.addSeparator()
+            
+            # Kick/Ban actions
+            menu.addAction("Kick").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"KICK {self.current_target} {nick}"))
+            menu.addAction("Kick with Reason...").triggered.connect(lambda: self.kick_with_reason(nick))
+            menu.addAction("Ban").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} +b {nick}!*@*"))
+            menu.addAction("Kick + Ban").triggered.connect(lambda: (
+                self.clients[self.current_nw].send_command(f"MODE {self.current_target} +b {nick}!*@*"),
+                self.clients[self.current_nw].send_command(f"KICK {self.current_target} {nick}")
+            ))
+            menu.addSeparator()
+        
+        # User actions
+        menu.addAction("Ignore User").triggered.connect(lambda: self.on_message(self.current_nw, self.current_target, f"*** Ignoring {nick} (not yet implemented)"))
+        menu.addAction("Copy Nickname").triggered.connect(lambda: QApplication.clipboard().setText(nick))
+        
         menu.exec_(self.nicks.mapToGlobal(pos))
+    
+    def on_chat_context_menu(self, pos):
+        """Context menu for chat area - can right-click on nicknames in messages."""
+        cursor = self.chat.cursorForPosition(pos)
+        cursor.select(cursor.WordUnderCursor)
+        word = cursor.selectedText().strip('<>:,')
+        
+        # Check if word looks like a nickname (not a URL, not empty, reasonable length)
+        if not word or len(word) > 30 or '/' in word or '.' in word and len(word.split('.')) > 2:
+            # Show default text browser context menu
+            return
+        
+        # Try to find this word in the current channel's nicklist
+        if self.current_nw and self.current_target:
+            buf = self.buffers.get((self.current_nw, self.current_target))
+            if buf:
+                prefix_chars = ''.join(NICK_PREFIXES) + ' '
+                nicks_in_channel = [n.lstrip(prefix_chars).lower() for n in buf.get("nicks", [])]
+                
+                if word.lower() in nicks_in_channel:
+                    # Found a valid nickname, show context menu
+                    self.show_nick_menu_for_name(word, pos)
+                    return
+        
+        # Not a nickname, show default menu with copy option
+        menu = QMenu()
+        if cursor.hasSelection():
+            menu.addAction("Copy").triggered.connect(lambda: QApplication.clipboard().setText(cursor.selectedText()))
+        menu.exec_(self.chat.mapToGlobal(pos))
+    
+    def show_nick_menu_for_name(self, nick, pos):
+        """Show the same context menu as nicklist for a clicked nickname."""
+        menu = QMenu()
+        
+        # Information actions
+        menu.addAction("Whois").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"WHOIS {nick} {nick}"))
+        menu.addAction("Direct Message").triggered.connect(lambda: self.switch_buffer(self.current_nw, nick))
+        menu.addSeparator()
+        
+        # Channel operations (only if in a channel)
+        if self.current_target.startswith(('#', '&')):
+            # Op/Deop submenu
+            op_menu = menu.addMenu("Give Operator")
+            op_menu.addAction("Owner (+q)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} +q {nick}"))
+            op_menu.addAction("Admin (+a)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} +a {nick}"))
+            op_menu.addAction("Op (+o)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} +o {nick}"))
+            op_menu.addAction("Half-Op (+h)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} +h {nick}"))
+            op_menu.addAction("Voice (+v)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} +v {nick}"))
+            
+            deop_menu = menu.addMenu("Revoke Operator")
+            deop_menu.addAction("Owner (-q)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} -q {nick}"))
+            deop_menu.addAction("Admin (-a)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} -a {nick}"))
+            deop_menu.addAction("Op (-o)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} -o {nick}"))
+            deop_menu.addAction("Half-Op (-h)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} -h {nick}"))
+            deop_menu.addAction("Voice (-v)").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} -v {nick}"))
+            
+            menu.addSeparator()
+            
+            # Kick/Ban actions
+            menu.addAction("Kick").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"KICK {self.current_target} {nick}"))
+            menu.addAction("Kick with Reason...").triggered.connect(lambda: self.kick_with_reason(nick))
+            menu.addAction("Ban").triggered.connect(lambda: self.clients[self.current_nw].send_command(f"MODE {self.current_target} +b {nick}!*@*"))
+            menu.addAction("Kick + Ban").triggered.connect(lambda: (
+                self.clients[self.current_nw].send_command(f"MODE {self.current_target} +b {nick}!*@*"),
+                self.clients[self.current_nw].send_command(f"KICK {self.current_target} {nick}")
+            ))
+            menu.addSeparator()
+        
+        # User actions
+        menu.addAction("Ignore User").triggered.connect(lambda: self.on_message(self.current_nw, self.current_target, f"*** Ignoring {nick} (not yet implemented)"))
+        menu.addAction("Copy Nickname").triggered.connect(lambda: QApplication.clipboard().setText(nick))
+        
+        menu.exec_(self.chat.mapToGlobal(pos))
+    
+    def kick_with_reason(self, nick):
+        """Prompt for kick reason and execute kick."""
+        from PyQt5.QtWidgets import QInputDialog
+        reason, ok = QInputDialog.getText(self, "Kick User", f"Reason for kicking {nick}:")
+        if ok and self.current_nw and self.current_target:
+            cmd = f"KICK {self.current_target} {nick}"
+            if reason.strip():
+                cmd += f" :{reason}"
+            self.clients[self.current_nw].send_command(cmd)
 
     def openNetworkListDialogue(self): NetworkListDialogue(self).exec_()
     def openSettingsDialogue(self):

@@ -9,6 +9,8 @@ class IRCClient(QObject):
     received_message = pyqtSignal(str, str, dict)
     received_nick_list = pyqtSignal(tuple)
     received_topic = pyqtSignal(str, str)
+    # Emitted when topic setter/time info is available: (channel, setter, timestamp)
+    received_topic_meta = pyqtSignal(str, str, int)
     connected_to_server = pyqtSignal(str)
     disconnected_from_server = pyqtSignal(str)
     parted_channel = pyqtSignal(str, str)
@@ -190,6 +192,10 @@ class IRCClient(QObject):
                     self.handle_ctcp(sender, target, msg[1:-1])
                 else:
                     route_to = sender if target.lower() == self.nickname.lower() else target
+                    # Mark private messages so UI can distinguish PMs from server or host notices
+                    if route_to == sender:
+                        tags = dict(tags) if tags is not None else {}
+                        tags['is_private'] = True
                     self.received_message.emit(route_to, f'<{sender}> {msg}', tags)
 
             elif command == 'NOTICE':
@@ -226,7 +232,19 @@ class IRCClient(QObject):
                 self.received_mode.emit(chan, sender, mode)
 
             elif command == '332':
+                # RPL_TOPIC: args typically [nick, channel, topic]
                 self.received_topic.emit(args[1], args[2])
+
+            elif command == '333':
+                # RPL_TOPICWHOTIME: args typically [nick, channel, setter, setat]
+                try:
+                    chan = args[1]
+                    setter = args[2]
+                    ts = int(args[3]) if len(args) > 3 and args[3].isdigit() else None
+                    if ts is not None:
+                        self.received_topic_meta.emit(chan, setter, ts)
+                except Exception:
+                    pass
 
             elif command == '353':
                 chan = args[2]
@@ -242,8 +260,14 @@ class IRCClient(QObject):
                     self.event_received.emit(command, sender, args, tags)
                     
                     if not whois_data and command not in ['332', '353', '001']:
+                        # If the numeric reply references a channel, emit it with that channel as the target
+                        chan = ""
+                        for a in args:
+                            if a and (a.startswith('#') or a.startswith('&')):
+                                chan = a
+                                break
                         text = " ".join(args[1:]) if len(args) > 1 else (args[0] if args else "")
-                        self.received_message.emit("", f"[{command}] {text}", tags)
+                        self.received_message.emit(chan, f"[{command}] {text}", tags)
                 except Exception:
                     text = " ".join(args[1:]) if len(args) > 1 else (args[0] if args else "")
                     self.received_message.emit("", f"[{command}] {text}", tags)

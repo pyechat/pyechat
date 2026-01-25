@@ -80,6 +80,13 @@ class EventHandlerMixin:
         # Build the context for variable replacement
         ctx = self._build_event_context(nw, command, sender, args, tags)
         
+        # If MODE targets a user (not a channel), show it in network status rather than creating a per-user buffer
+        if command == "MODE":
+            ch = ctx.get('channel', '')
+            if not (ch.startswith('#') or ch.startswith('&')):
+                ctx['target'] = ''
+                ctx['channel'] = ''
+        
         try:
             if '$' in fmt:
                 # Custom handler for HexChat style variables ($1, $2, etc)
@@ -125,7 +132,9 @@ class EventHandlerMixin:
             self.on_message(nw, chan, f"*** {target} was kicked by {sender}{reason}")
         elif command == "MODE":
             chan, mode = args[0], args[1]
-            self.on_message(nw, chan, f"*** {sender} sets mode: {mode}")
+            # If MODE applies to a channel, show it in the channel; otherwise, show it in the network status buffer
+            target = chan if chan.startswith(('#', '&')) else ""
+            self.on_message(nw, target, f"*** {sender} sets mode: {mode}")
 
     def _build_event_context(self, nw, command, sender, args, tags):
         """Constructs the dictionary used for string formatting."""
@@ -289,6 +298,19 @@ class EventHandlerMixin:
             elif char == "l" and action == "+":
                 arg_idx += 1
         
+        # Post a human-readable mode change message into the affected channel (if it is a channel)
+        if chan and (chan.startswith('#') or chan.startswith('&')):
+            try:
+                self.on_message(nw, chan, f"*** {sender} sets mode: {mode}")
+            except Exception:
+                pass
+        else:
+            # Non-channel modes should be shown in the status buffer
+            try:
+                self.on_message(nw, "", f"*** {sender} sets mode: {mode}")
+            except Exception:
+                pass
+        
         if self.current_nw == nw and self.current_target == chan:
             self.nick_update_queued.add((nw, chan))
             if not self.nick_timer.isActive():
@@ -307,6 +329,48 @@ class EventHandlerMixin:
         self.setup_buffer(nw, chan)
         self.add_tree_item(nw, chan)
         self.buffers[(nw, chan)]["topic"] = topic
+        # Also post a message into the channel buffer so it's visible in the chat window when joining
+        try:
+            if topic:
+                self.on_message(nw, chan, f"*** Topic for {chan}: {topic}")
+        except Exception:
+            pass
         if self.current_nw == nw and self.current_target == chan:
-            self.topic.setText(topic)
+            # Compose label including topic and any metadata
+            t = topic or chan
+            meta = self.buffers[(nw, chan)].get("topic_meta")
+            if meta:
+                setter = meta.get("setter")
+                ts = meta.get("set_at")
+                try:
+                    ts_text = datetime.datetime.fromtimestamp(int(ts)).strftime('%Y-%m-%d %H:%M') if ts else ""
+                    if setter and ts_text:
+                        t = f"{t} — set by {setter} at {ts_text}"
+                except Exception:
+                    pass
+            self.topic.setText(t)
             self.topic.setToolTip(topic)
+
+    def on_topic_meta(self, nw, chan, setter, ts):
+        """Handle topic setter/time info (RPL_TOPICWHOTIME)."""
+        self.setup_buffer(nw, chan)
+        self.add_tree_item(nw, chan)
+        self.buffers[(nw, chan)]["topic_meta"] = {"setter": setter, "set_at": ts}
+        # Post a message into the channel describing who set the topic and when
+        try:
+            if setter and ts:
+                ts_text = datetime.datetime.fromtimestamp(int(ts)).strftime('%Y-%m-%d %H:%M')
+                self.on_message(nw, chan, f"*** Topic set by {setter} at {ts_text}")
+        except Exception:
+            pass
+        if self.current_nw == nw and self.current_target == chan:
+            # Re-render the topic label to include meta
+            topic_text = self.buffers[(nw, chan)].get("topic") or chan
+            try:
+                ts_text = datetime.datetime.fromtimestamp(int(ts)).strftime('%Y-%m-%d %H:%M')
+                if setter and ts_text:
+                    topic_text = f"{topic_text} — set by {setter} at {ts_text}"
+            except Exception:
+                pass
+            self.topic.setText(topic_text)
+            self.topic.setToolTip(self.buffers[(nw, chan)].get("topic") or chan)

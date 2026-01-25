@@ -55,6 +55,11 @@ class SettingsDialogue(QDialog):
         self.filter_seconds = QLineEdit(str(self.settings.get("smart_filter_seconds", 300)))
         self.filter_seconds.setFixedWidth(80)
         self.filter_seconds.setToolTip("Time in seconds to track user activity")
+
+        # Numeric replies display
+        self.show_numeric_replies = QCheckBox()
+        self.show_numeric_replies.setChecked(self.settings.get("show_numeric_replies", False))
+        self.show_numeric_replies.setToolTip("Show numeric server replies (e.g., 366 End of NAMES) in channel windows")
         
         self.conn_info = QComboBox()
         self.conn_info.addItems(["Minimal", "Standard", "Verbose"])
@@ -69,6 +74,7 @@ class SettingsDialogue(QDialog):
         layout.addRow("Hide Join/Part/Quit:", self.hide_join_part)
         layout.addRow("Smart Filter Join/Part:", self.smart_filter)
         layout.addRow("Filter Time (seconds):", self.filter_seconds)
+        layout.addRow("Show Numeric Replies in Channel:", self.show_numeric_replies)
         layout.addRow("Auto Reconnect:", self.reconnect)
         layout.addRow("Nick Colouring:", self.nick_colour)
         layout.addRow("Highlight Mentions:", self.highlight)
@@ -361,6 +367,7 @@ class SettingsDialogue(QDialog):
             "hide_join_part": self.hide_join_part.isChecked(),
             "smart_filter_join_part": self.smart_filter.isChecked(),
             "smart_filter_seconds": int(self.filter_seconds.text()) if self.filter_seconds.text().isdigit() else 300,
+            "show_numeric_replies": self.show_numeric_replies.isChecked(),
             "auto_reconnect": self.reconnect.isChecked(),
             "nick_colouring": self.nick_colour.isChecked(),
             "highlight_mentions": self.highlight.isChecked(),
