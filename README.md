@@ -10,57 +10,57 @@ Join our official channels to get support, share ideas, or connect with the comm
 ## Features
 
 ### Core IRC Features
-- 🌐 **Multi-network support** - Connect to multiple IRC networks simultaneously
-- 🔒 **SSL/TLS support** - Secure connections with SSL/TLS encryption (OpenSSL 3.x compatible)
-- 🔑 **SASL authentication** - PLAIN and EXTERNAL methods supported
-- 🚀 **IRCv3 capabilities** - server-time, multi-prefix, away-notify, account-notify, extended-join
-- 🤖 **Auto-reconnect** - Automatic reconnection with configurable retry
-- 📝 **Auto-commands** - Execute commands automatically on connect (e.g., NickServ identification)
-- 🔔 **CTCP support** - Responds to VERSION, PING, TIME requests
+- **Multi-network support** — Connect to multiple IRC networks simultaneously
+- **SSL/TLS support** — Secure connections with SSL/TLS encryption (OpenSSL 3.x compatible)
+- **SASL authentication** — PLAIN and EXTERNAL methods supported
+- **IRCv3 capabilities** — server-time, multi-prefix, away-notify, account-notify, extended-join
+- **Auto-reconnect** — Automatic reconnection with configurable retry
+- **Auto-commands** — Execute commands automatically on connect (e.g., NickServ identification)
+- **CTCP support** — Responds to VERSION, PING, TIME requests
 
 ### User Interface
-- 🎨 **7 Built-in Themes** - Dark (Default), Dracula, Monokai, Solarized Dark, Nord, Gruvbox Dark, and Light
-- 🌈 **Nick coloring** - Deterministic nick colors based on username
-- ⭐ **Activity tracking** - Highlights channels with new messages or mentions
-- 💬 **Message batching** - Optimized rendering for high-traffic channels (100ms batching, 500 msg/batch)
-- 📊 **Real-time nick list** - Shows users with proper rank symbols (@, +, etc.)
-- 🔍 **Enhanced WHOIS** - Colorized, formatted WHOIS responses
-- 📋 **Context menus** - Right-click menus for channels and users
-- 🎯 **Highlight mentions** - Visual highlighting when your nick is mentioned
-- 🎭 **Customizable appearance** - Full color control for every UI element
+- **7 built-in themes** — Dark (Default), Dracula, Monokai, Solarized Dark, Nord, Gruvbox Dark, and Light
+- **Nick coloring** — Deterministic nick colors based on username
+- **Activity tracking** — Highlights channels with new messages or mentions
+- **Message batching** — Optimized rendering for high-traffic channels (100ms batching, 500 msg/batch)
+- **Real-time nick list** — Shows users with proper rank symbols (@, +, etc.)
+- **Enhanced WHOIS** — Colorized, formatted WHOIS responses
+- **Context menus** — Right-click menus for channels and users
+- **Highlight mentions** — Visual highlighting when your nick is mentioned
+- **Customizable appearance** — Full color control for every UI element
 
 ### Message Formatting
 - **Bold**, *italic*, <u>underline</u> text support
-- 🎨 **mIRC color codes** - Full 16-color palette
-- 🔗 **URL detection** - Auto-linkifies HTTP(S) URLs (clickable links)
-- 💬 **IRC formatting to HTML** - Converts IRC codes to rich HTML display
-- ✨ **Custom event formatting** - Customize JOIN, PART, KICK, MODE messages with colors
+- **mIRC color codes** — Full 16-color palette
+- **URL detection** — Auto-linkifies HTTP(S) URLs (clickable links)
+- **IRC formatting to HTML** — Converts IRC codes to rich HTML display
+- **Custom event formatting** — Customize JOIN, PART, KICK, MODE messages with colors
 
 ### Advanced Features
-- 🔌 **Plugin system** - Auto-loading for both Python (.py) and TCL (.tcl) scripts
-- ⚡ **Shell command execution** - `/exec` command for running shell commands (with `-o` flag for channel output)
-- ⌨️ **Tab completion** - Intelligent nick and channel name completion with cycling
-- 📝 **Chat logging** - Automatic logging to disk (per-network, per-channel)
-- 🔄 **Smart input box** - Auto-expanding input (30-85px) with Shift+Enter for newlines
-- ⚙️ **Connection info levels** - Minimal, Standard, or Verbose server message filtering
-- 🎭 **Channel events** - Tracks JOIN, PART, QUIT, KICK, MODE, NICK changes
-- 📢 **NOTICE and ACTION support** - Proper handling of NOTICE messages and /me actions
-- 💾 **Persistent settings** - All preferences saved to JSON configuration
+- **Plugin system** — Auto-loading for both Python (.py) and TCL (.tcl) scripts
+- **Shell command execution** — `/exec` command for running shell commands (with `-o` flag for channel output)
+- **Tab completion** — Intelligent nick and channel name completion with cycling
+- **Chat logging** — Automatic logging to disk (per-network, per-channel)
+- **Smart input box** — Auto-expanding input (30-85px) with Shift+Enter for newlines
+- **Connection info levels** — Minimal, Standard, or Verbose server message filtering
+- **Channel events** — Tracks JOIN, PART, QUIT, KICK, MODE, NICK changes
+- **NOTICE and ACTION support** — Proper handling of NOTICE messages and /me actions
+- **Persistent settings** — All preferences saved to JSON configuration
 
 ## Recent Notable Additions (2026-01-25)
 The project has received several UI and functionality improvements to make PyeChat feel more polished and powerful. Key highlights:
 
-- 🌈 **Colored Nicknames & Nicklist** — Deterministic nick coloring in chat and in the nick list (right side) for easier scanning of users.
-- 🧾 **Channel Management Dialog** — New dialog to view and edit channel metadata: topic editor, mode editor, and a ban list viewer/editor. The dialog requests the ban list on open and supports adding/removing bans.
-- 🔒 **Banlist Parsing (RFC numerics)** — Proper handling of RPL_BANLIST (367) and RPL_ENDOFBANLIST (368) so ban entries populate the Channel Management ban table.
-- 🧹 **Smart Join/Part Filtering** — Settings to hide join/part/quit messages or enable smart filtering that suppresses noise for users who haven't been active recently (configurable window).
-- 🔧 **MODE Handling Fixes** — Mode changes no longer duplicate in the chat; mode processing updates nick prefixes and updates the nick list without double-posting.
-- 🖱️ **Improved Context Menus** — Right-click in chat now detects nick clicks reliably and shows per-nick operations (whois, kick/ban, voice/op), while channel right-click offers Channel Management and Sysinfo.
-- 🧾 **/SYSINFO Command** — New `/SYSINFO` command and UI action to broadcast concise system info (uptime, memory, OS) to a channel or send it privately.
-- ✂️ **Command Aliases** — Added short aliases for convenience (e.g. `/j` → `/join`, `/ns` → `/msg NickServ`, and other service shortcuts).
-- ⌨️ **Input History** — Up/Down arrow history navigation in the message input for quick recall and editing of previous messages.
-- 🧰 **Startup & Plugin Loader Reliability** — Fixed startup scheduling so the Network List reliably opens on first run and plugin loader messages are restored to stdout/UI logs; added delayed theme re-apply to prevent flash.
-- 🧪 **Event & Numeric Improvements** — Better handling of topic metadata (RPL_TOPICWHOTIME / 333), channel modes (324), and more robust formatting for server numerics so replies appear in the correct buffer.
+- **Colored Nicknames & Nicklist** — Deterministic nick coloring in chat and in the nick list (right side) for easier scanning of users.
+- **Channel Management Dialog** — New dialog to view and edit channel metadata: topic editor, mode editor, and a ban list viewer/editor. The dialog requests the ban list on open and supports adding/removing bans.
+- **Banlist Parsing (RFC numerics)** — Proper handling of RPL_BANLIST (367) and RPL_ENDOFBANLIST (368) so ban entries populate the Channel Management ban table.
+- **Smart Join/Part Filtering** — Settings to hide join/part/quit messages or enable smart filtering that suppresses noise for users who haven't been active recently (configurable window).
+- **MODE Handling Fixes** — Mode changes no longer duplicate in the chat; mode processing updates nick prefixes and updates the nick list without double-posting.
+- **Improved Context Menus** — Right-click in chat now detects nick clicks reliably and shows per-nick operations (whois, kick/ban, voice/op), while channel right-click offers Channel Management and Sysinfo.
+- **/SYSINFO Command** — New `/SYSINFO` command and UI action to broadcast concise system info (uptime, memory, OS) to a channel or send it privately.
+- **Command Aliases** — Added short aliases for convenience (e.g. `/j` → `/join`, `/ns` → `/msg NickServ`, and other service shortcuts).
+- **Input History** — Up/Down arrow history navigation in the message input for quick recall and editing of previous messages.
+- **Startup & Plugin Loader Reliability** — Fixed startup scheduling so the Network List reliably opens on first run and plugin loader messages are restored to stdout/UI logs; added delayed theme re-apply to prevent flash.
+- **Event & Numeric Improvements** — Better handling of topic metadata (RPL_TOPICWHOTIME / 333), channel modes (324), and more robust formatting for server numerics so replies appear in the correct buffer.
 
 > Note: These changes were implemented incrementally; see the Git history for granular commits and more context.
 
@@ -119,7 +119,7 @@ cd pyechat
 
 2. **Install dependencies**
 
-**⚠️ Important: SSL/TLS Support**
+**Important: SSL/TLS Support**
 
 For SSL/TLS connections to work properly on systems with OpenSSL 3.x, you **must** use the system PyQt5 package:
 
@@ -290,12 +290,12 @@ greet "world"
 - `pyechat_send <network> <command>` - Send IRC command to network
 
 **Plugin Features:**
-- ✅ Auto-loading on startup
-- ✅ Access to all IRC events
-- ✅ Full access to main window and IRC clients (Python)
-- ✅ Signal/slot connections (Python)
-- ✅ Custom IRC commands
-- ✅ State persistence across restarts
+- Auto-loading on startup
+- Access to all IRC events
+- Full access to main window and IRC clients (Python)
+- Signal/slot connections (Python)
+- Custom IRC commands
+- State persistence across restarts
 
 See `scripts/README.md` and example scripts for full API documentation.
 
