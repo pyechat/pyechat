@@ -58,6 +58,7 @@ The project has received several UI and functionality improvements to make PyeCh
 - **Improved Context Menus** — Right-click in chat now detects nick clicks reliably and shows per-nick operations (whois, kick/ban, voice/op), while channel right-click offers Channel Management and Sysinfo.
 - **/SYSINFO Command** — New `/SYSINFO` command and UI action to broadcast concise system info (uptime, memory, OS) to a channel or send it privately.
 - **Command Aliases** — Added short aliases for convenience (e.g. `/j` → `/join`, `/ns` → `/msg NickServ`, and other service shortcuts).
+- **OperServ Commands & Templates** — Added an **OperServ** submenu under Operator Commands that provides editable templates (KLINE, GLINE, ZLINE, SHUN, AKILL, KILL, SGLINE, SHUTDOWN, HELP, INFO, LIST, and more) plus a raw command option. The OperServ target nick is configurable per-network via the Network settings (default `OperServ`).
 - **Input History** — Up/Down arrow history navigation in the message input for quick recall and editing of previous messages.
 - **Startup & Plugin Loader Reliability** — Fixed startup scheduling so the Network List reliably opens on first run and plugin loader messages are restored to stdout/UI logs; added delayed theme re-apply to prevent flash.
 - **Event & Numeric Improvements** — Better handling of topic metadata (RPL_TOPICWHOTIME / 333), channel modes (324), and more robust formatting for server numerics so replies appear in the correct buffer.
@@ -303,14 +304,15 @@ See `scripts/README.md` and example scripts for full API documentation.
 
 ### Networks
 Network configurations are stored in `data/networks.json`. Each network can have:
-- **Name** - Display name for the network
-- **Host & Port** - IRC server address
-- **SSL** - Enable SSL/TLS encryption
-- **SASL** - Authentication method (None, PLAIN, EXTERNAL)
-- **Nickname & Real Name** - Your identity
-- **Server Password** - Optional server password
-- **Auto-join Channels** - Channels to join on connect
-- **Auto-commands** - Commands to run after connecting (e.g., NickServ identification)
+- **Name** — Display name for the network
+- **Host & Port** — IRC server address
+- **SSL** — Enable SSL/TLS encryption
+- **SASL** — Authentication method (None, PLAIN, EXTERNAL)
+- **Nickname & Real Name** — Your identity
+- **Server Password** — Optional server password
+- **Auto-join Channels** — Channels to join on connect
+- **Auto-commands** — Commands to run after connecting (e.g., NickServ identification)
+- **OperServ nick** — Optional service nick used by the OperServ Commands submenu (defaults to `OperServ` when not set)
 
 Edit networks through: **PyeChat → Network List**
 
