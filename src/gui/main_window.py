@@ -12,6 +12,7 @@ from PyQt5.QtGui import QIcon, QTextCursor, QFont, QColor, QPalette, QBrush
 from PyQt5.QtCore import Qt, QTimer
 
 from src.irc.irc_client import IRCClient
+from src.irc.chat_logger import ChatLogger
 from src.gui.utils.colors import get_nick_colour, get_nick_colour_qcolor
 from src.gui.utils.formatters import irc_to_html
 from src.gui.dialogs.network_list import NetworkListDialogue
@@ -41,6 +42,7 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.clients = {}
         self.buffers = {}
         self.recent_activity = {}  # Track recent join/part activity for smart filtering
+        self.chat_logger = ChatLogger()  # Initialize chat logger
         
         self.load_settings()
         
@@ -352,8 +354,16 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         client.connect_to_host()
 
     def setup_buffer(self, nw, target):
-        if (nw, target) not in self.buffers: 
+        if (nw, target) not in self.buffers:
             self.buffers[(nw, target)] = {"messages": [], "nicks": [], "topic": "", "activity": False, "highlight": False}
+            # Load old logs when creating a new buffer
+            if self.settings.get("enable_logging", True):
+                old_logs = self.chat_logger.load_logs(nw, target)
+                if old_logs:
+                    # Convert plain text logs to HTML format for display
+                    for log_line in old_logs:
+                        # Log format: [YYYY-MM-DD HH:MM:SS] message
+                        self.buffers[(nw, target)]["messages"].append(f'<div style="background-color: transparent; border-left: none; padding-left: 0px;"><span style="color: #6272a4;">{log_line[:21]}</span> {irc_to_html(log_line[22:])}</div>')
 
     def switch_buffer(self, nw, target):
         if self.current_nw == nw and self.current_target == target: return
@@ -503,6 +513,10 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         if len(buf["messages"]) > 2500: buf["messages"].pop(0)
         if target and not self.find_item(nw, target): self.add_tree_item(nw, target)
         self.msg_queue.append((nw, target, final_line))
+        
+        # Log the message to disk
+        if self.settings.get("enable_logging", True):
+            self.chat_logger.log_message(nw, target, msg, timestamp=dt if 'dt' in locals() else None)
         
         if nw == self.current_nw and target == self.current_target: return
         it = self.find_item(nw, target)
