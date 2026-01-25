@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b4252"/>
+      <stop offset="1" stop-color="#2e3440"/>
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" rx="32" ry="32" fill="url(#g)" />
+
+  <!-- speech bubble -->
+  <g transform="translate(38,38)">
+    <path d="M40 10 h88 a22 22 0 0 1 22 22 v38 a22 22 0 0 1 -22 22 h-54 l-26 22 v-22 h-8 a22 22 0 0 1 -22 -22 v-38 a22 22 0 0 1 22 -22 z" fill="#E95420"/>
+  </g>
+
+  <!-- white P letter -->
+  <g transform="translate(72,60)">
+    <path d="M12 6 h20 a8 8 0 0 1 8 8 a8 8 0 0 1 -8 8 h-8 v8 h-8 z" fill="#ffffff"/>
+    <rect x="8" y="0" width="8" height="44" rx="3" ry="3" fill="#ffffff"/>
+  </g>
+
+  <!-- small accent circle -->
+  <circle cx="206" cy="50" r="8" fill="#ffdc64" opacity="0.85"/>
+</svg>

@@ -47,9 +47,13 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.setObjectName("PyeChat")
         self.setWindowTitle("PyeChat")
         
-        icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'pyechat.png'))
-        if os.path.exists(icon_path):
-            self.setWindowIcon(QIcon(icon_path))
+        assets_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'assets'))
+        # Prefer vector icon if available, fall back to PNG/ICO
+        for name in ('pyechat.svg', 'pyechat.png', 'pyechat_fixed.png', 'pyechat.ico'):
+            icon_path = os.path.join(assets_dir, name)
+            if os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+                break
         
         self.setGeometry(DEFAULT_WINDOW_X, DEFAULT_WINDOW_Y, 
                         DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)
