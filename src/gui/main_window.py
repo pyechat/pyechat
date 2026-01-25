@@ -554,14 +554,21 @@ class MainWindow(QMainWindow, EventHandlerMixin):
                     c.send_command(f"PRIVMSG {self.current_target} :\x01ACTION {args}\x01")
                     self.on_message(self.current_nw, self.current_target, f"* {c.nickname} {args}")
             elif cmd == "SYSINFO":
-                # Built-in system info command - print a nicely formatted line into the current buffer
+                # Built-in system info command - send formatted info to the current target (channel or user)
                 try:
                     from src.gui.utils.sysinfo import get_sysinfo
                     info = get_sysinfo()
-                    # print as if from current nick
-                    self.on_message(self.current_nw, self.current_target, f"<{c.nickname}> {info}")
+                    target = self.current_target
+                    if not target:
+                        # No buffer selected
+                        self.on_message(self.current_nw, "", "*** Error: No target buffer to send SYSINFO to")
+                    else:
+                        # Send to server so others can see it
+                        c.send_command(f"PRIVMSG {target} :{info}")
+                        # Also display locally
+                        self.on_message(self.current_nw, target, f"<{c.nickname}> {info}")
                 except Exception as e:
-                    self.on_message(self.current_nw, self.current_target, f"*** Error: {e}")
+                    self.on_message(self.current_nw, self.current_target or "", f"*** Error: {e}")
             else:
                 # Fallback: send raw command to server
                 c.send_command(txt[1:])
@@ -591,15 +598,22 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             if not self.nick_timer.isActive(): self.nick_timer.start(100)
 
     def show_sysinfo(self, target=None):
-        """Gather and display SYSINFO in the specified buffer (or current)."""
+        """Gather and display SYSINFO in the specified buffer (or current).
+        This also sends the info as a PRIVMSG so other users can see it."""
         nw = self.current_nw
         if not nw or nw not in self.clients:
             return
         target = target or self.current_target or ""
+        if not target:
+            self.on_message(nw, "", "*** Error: No target to send SYSINFO to")
+            return
         try:
             from src.gui.utils.sysinfo import get_sysinfo
             info = get_sysinfo()
             nick = self.clients[nw].nickname
+            # Send to server so others can see it
+            self.clients[nw].send_command(f"PRIVMSG {target} :{info}")
+            # Also display locally
             self.on_message(nw, target, f"<{nick}> {info}")
         except Exception as e:
             self.on_message(nw, target, f"*** Error gathering system info: {e}")
