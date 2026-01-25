@@ -730,6 +730,107 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         except Exception as e:
             self.on_message(nw, target, f"*** Error gathering system info: {e}")
 
+    # ------------------ Operator command helpers ------------------
+    def _add_oper_menu(self, menu, nick=None):
+        """Add an Operator Commands submenu to `menu`. If `nick` is supplied
+        some commands will be pre-filled for convenience."""
+        oper_menu = menu.addMenu("Operator Commands")
+        oper_menu.addAction("Become OPER...").triggered.connect(lambda: self._oper_become())
+        oper_menu.addAction("Kill user...").triggered.connect(lambda: self._oper_kill(nick) if nick else self._oper_kill())
+        oper_menu.addAction("K-Line (ban)...").triggered.connect(lambda: self._oper_ban('KLINE', f"{nick}!*@*" if nick else ""))
+        oper_menu.addAction("G-Line (global ban)...").triggered.connect(lambda: self._oper_ban('GLINE', f"{nick}!*@*" if nick else ""))
+        oper_menu.addAction("Z-Line (IP ban)...").triggered.connect(lambda: self._oper_ban('ZLINE', ""))
+        oper_menu.addAction("Unban (UNKLINE/UNGLINE)...").triggered.connect(lambda: self._oper_unban())
+        oper_menu.addAction("WALLOPS...").triggered.connect(lambda: self._oper_wallops())
+        oper_menu.addAction("SQUIT server...").triggered.connect(lambda: self._oper_squit())
+        oper_menu.addSeparator()
+        oper_menu.addAction("RESTART server").triggered.connect(lambda: self._oper_confirm('RESTART'))
+        oper_menu.addAction("DIE server").triggered.connect(lambda: self._oper_confirm('DIE'))
+        oper_menu.addSeparator()
+        oper_menu.addAction("Send raw operator command...").triggered.connect(lambda: self._oper_raw())
+
+    def _oper_become(self):
+        from PyQt5.QtWidgets import QInputDialog
+        user, ok = QInputDialog.getText(self, "Become OPER", "Operator username:")
+        if not ok or not user: return
+        pwd, ok2 = QInputDialog.getText(self, "Become OPER", "Operator password:", QInputDialog.Normal)
+        if not ok2: return
+        cmd = f"OPER {user} {pwd}"
+        self._oper_confirm_and_send(cmd)
+
+    def _oper_kill(self, nick=None):
+        from PyQt5.QtWidgets import QInputDialog
+        if not nick:
+            nick, ok = QInputDialog.getText(self, "Kill User", "Nick to KILL:")
+            if not ok or not nick: return
+        reason, ok = QInputDialog.getText(self, "Kill User", f"Reason for killing {nick}:")
+        if not ok: return
+        cmd = f"KILL {nick} :{reason}" if reason else f"KILL {nick}"
+        self._oper_confirm_and_send(cmd, warn=True)
+
+    def _oper_ban(self, kind, default_mask=""):
+        from PyQt5.QtWidgets import QInputDialog
+        mask, ok = QInputDialog.getText(self, f"{kind}", "Ban mask:", text=default_mask)
+        if not ok or not mask: return
+        reason, ok2 = QInputDialog.getText(self, f"{kind}", "Reason:")
+        if not ok2: return
+        cmd = f"{kind} {mask} :{reason}" if reason else f"{kind} {mask}"
+        self._oper_confirm_and_send(cmd, warn=True)
+
+    def _oper_unban(self):
+        from PyQt5.QtWidgets import QInputDialog
+        mask, ok = QInputDialog.getText(self, "Unban", "Ban mask to remove (exact):")
+        if not ok or not mask: return
+        # Try both UNGLINE and UNKLINE as servers differ
+        from PyQt5.QtWidgets import QMessageBox
+        if QMessageBox.question(self, "Confirm", "Send UNGLINE (Yes) or UNKLINE (No)?", QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
+            cmd = f"UNGLINE {mask}"
+        else:
+            cmd = f"UNKLINE {mask}"
+        self._oper_confirm_and_send(cmd)
+
+    def _oper_wallops(self):
+        from PyQt5.QtWidgets import QInputDialog
+        msg, ok = QInputDialog.getText(self, "WALLOPS", "Message to WALLOPS:")
+        if not ok or not msg: return
+        cmd = f"WALLOPS :{msg}"
+        self._oper_confirm_and_send(cmd)
+
+    def _oper_squit(self):
+        from PyQt5.QtWidgets import QInputDialog
+        srv, ok = QInputDialog.getText(self, "SQUIT", "Server to SQUIT:")
+        if not ok or not srv: return
+        reason, ok2 = QInputDialog.getText(self, "SQUIT", "Reason:")
+        if not ok2: return
+        cmd = f"SQUIT {srv} :{reason}" if reason else f"SQUIT {srv}"
+        self._oper_confirm_and_send(cmd, warn=True)
+
+    def _oper_confirm(self, cmd):
+        from PyQt5.QtWidgets import QMessageBox
+        if QMessageBox.question(self, "Confirm", f"Really send '{cmd}'?", QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
+            self._oper_confirm_and_send(cmd, warn=True)
+
+    def _oper_raw(self):
+        from PyQt5.QtWidgets import QInputDialog
+        cmd, ok = QInputDialog.getText(self, "Raw Operator Command", "IRC command:")
+        if not ok or not cmd: return
+        self._oper_confirm_and_send(cmd, warn=True)
+
+    def _oper_confirm_and_send(self, cmd, warn=False):
+        from PyQt5.QtWidgets import QMessageBox
+        if warn:
+            if QMessageBox.warning(self, "Dangerous Command", f"This command may be disruptive:\n{cmd}\n\nAre you sure?", QMessageBox.Yes | QMessageBox.No) != QMessageBox.Yes:
+                return
+        nw = self.current_nw
+        if not nw or nw not in self.clients:
+            self.on_message("", "", "*** Error: Not connected to any network")
+            return
+        try:
+            self.clients[nw].send_command(cmd)
+            self.on_message(nw, self.current_target or "", f"*** Sent oper command: {cmd}")
+        except Exception as e:
+            self.on_message(nw, self.current_target or "", f"*** Error sending oper command: {e}")
+
     def on_tree_context_menu(self, pos):
         item = self.tree.itemAt(pos)
         if not item: return
@@ -745,6 +846,11 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             # Provide quick sysinfo on channel (tree context)
             if target.startswith(('#', '&')):
                 menu.addAction("Sysinfo").triggered.connect(lambda: self.show_sysinfo(target))
+                # Channel-level operator commands
+                try:
+                    self._add_oper_menu(menu, None)
+                except Exception:
+                    pass
         menu.exec_(self.tree.mapToGlobal(pos))
 
     def on_nick_context_menu(self, pos):
@@ -794,6 +900,12 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         # User actions
         menu.addAction("Ignore User").triggered.connect(lambda: self.on_message(self.current_nw, self.current_target, f"*** Ignoring {nick} (not yet implemented)"))
         menu.addAction("Copy Nickname").triggered.connect(lambda: QApplication.clipboard().setText(nick))
+            
+        # Advanced operator commands
+        try:
+            self._add_oper_menu(menu, nick)
+        except Exception:
+            pass
         
         menu.exec_(self.nicks.mapToGlobal(pos))
     
@@ -894,6 +1006,12 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         # User actions
         menu.addAction("Ignore User").triggered.connect(lambda: self.on_message(self.current_nw, self.current_target, f"*** Ignoring {nick} (not yet implemented)"))
         menu.addAction("Copy Nickname").triggered.connect(lambda: QApplication.clipboard().setText(nick))
+            
+        # Advanced operator commands
+        try:
+            self._add_oper_menu(menu, nick)
+        except Exception:
+            pass
         
         menu.exec_(self.chat.mapToGlobal(pos))
     
