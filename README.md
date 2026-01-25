@@ -47,6 +47,23 @@ Join our official channels to get support, share ideas, or connect with the comm
 - 📢 **NOTICE and ACTION support** - Proper handling of NOTICE messages and /me actions
 - 💾 **Persistent settings** - All preferences saved to JSON configuration
 
+## Recent Notable Additions (2026-01-25)
+The project has received several UI and functionality improvements to make PyeChat feel more polished and powerful. Key highlights:
+
+- 🌈 **Colored Nicknames & Nicklist** — Deterministic nick coloring in chat and in the nick list (right side) for easier scanning of users.
+- 🧾 **Channel Management Dialog** — New dialog to view and edit channel metadata: topic editor, mode editor, and a ban list viewer/editor. The dialog requests the ban list on open and supports adding/removing bans.
+- 🔒 **Banlist Parsing (RFC numerics)** — Proper handling of RPL_BANLIST (367) and RPL_ENDOFBANLIST (368) so ban entries populate the Channel Management ban table.
+- 🧹 **Smart Join/Part Filtering** — Settings to hide join/part/quit messages or enable smart filtering that suppresses noise for users who haven't been active recently (configurable window).
+- 🔧 **MODE Handling Fixes** — Mode changes no longer duplicate in the chat; mode processing updates nick prefixes and updates the nick list without double-posting.
+- 🖱️ **Improved Context Menus** — Right-click in chat now detects nick clicks reliably and shows per-nick operations (whois, kick/ban, voice/op), while channel right-click offers Channel Management and Sysinfo.
+- 🧾 **/SYSINFO Command** — New `/SYSINFO` command and UI action to broadcast concise system info (uptime, memory, OS) to a channel or send it privately.
+- ✂️ **Command Aliases** — Added short aliases for convenience (e.g. `/j` → `/join`, `/ns` → `/msg NickServ`, and other service shortcuts).
+- ⌨️ **Input History** — Up/Down arrow history navigation in the message input for quick recall and editing of previous messages.
+- 🧰 **Startup & Plugin Loader Reliability** — Fixed startup scheduling so the Network List reliably opens on first run and plugin loader messages are restored to stdout/UI logs; added delayed theme re-apply to prevent flash.
+- 🧪 **Event & Numeric Improvements** — Better handling of topic metadata (RPL_TOPICWHOTIME / 333), channel modes (324), and more robust formatting for server numerics so replies appear in the correct buffer.
+
+> Note: These changes were implemented incrementally; see the Git history for granular commits and more context.
+
 ## Project Structure
 ```
 pyechat/
