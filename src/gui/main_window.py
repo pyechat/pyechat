@@ -429,7 +429,18 @@ class MainWindow(QMainWindow, EventHandlerMixin):
                             # preserve any leading prefix characters
                             prefix = n[:len(n) - len(raw)]
                             if prefix:
-                                display_sender = f"{prefix}{sender}"
+                                # Some servers may annotate multiple status prefixes (e.g., '&@').
+                                # Choose the single highest-priority prefix to display
+                                best = None
+                                best_rank = 999
+                                for ch in prefix:
+                                    r = NICK_RANK_MAP.get(ch)
+                                    if r is not None and r < best_rank:
+                                        best = ch; best_rank = r
+                                if best:
+                                    display_sender = f"{best}{sender}"
+                                else:
+                                    display_sender = f"{prefix}{sender}"
                             break
             except Exception:
                 pass
