@@ -482,7 +482,12 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         if self.settings.get("show_timestamps", True):
             fmt, colour = self.settings.get("ts_format", "[%H:%M:%S]"), self.settings.get("ts_colour", "#888")
             t_tag = tags.get('time')
-            dt = datetime.datetime.fromisoformat(t_tag.replace('Z', '+00:00')) if t_tag else datetime.datetime.now()
+            if t_tag:
+                # Parse UTC time and convert to local timezone
+                dt = datetime.datetime.fromisoformat(t_tag.replace('Z', '+00:00'))
+                dt = dt.astimezone()  # Convert to local timezone
+            else:
+                dt = datetime.datetime.now()
             ts = f'<span style="color: {colour};">{dt.strftime(fmt)} </span>'
 
         if is_highlight:
