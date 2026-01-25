@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
                              QListWidget, QListWidgetItem, QTextBrowser, QLabel, QMenu, 
                              QTreeWidget, QTreeWidgetItem, QApplication, 
                              QSplitter, QSizePolicy)
-from PyQt5.QtGui import QIcon, QTextCursor, QFont, QColor, QPalette
+from PyQt5.QtGui import QIcon, QTextCursor, QFont, QColor, QPalette, QBrush
 from PyQt5.QtCore import Qt, QTimer
 
 from src.irc.irc_client import IRCClient
@@ -174,8 +174,9 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             palette.setColor(QPalette.HighlightedText, QColor(s.get('tree_sel_fg', '#ffffff')))
             self.tree.setPalette(palette)
             self.tree.setAutoFillBackground(True)
-            # Also set stylesheet directly on widget as backup
-            self.tree.setStyleSheet(f"QTreeWidget {{ background-color: {tree_bg}; color: {tree_fg}; border: none; }} QTreeWidget::item {{ color: {tree_fg}; }} QTreeWidget::item:selected {{ background-color: {s.get('tree_sel_bg', '#E95420')}; color: {s.get('tree_sel_fg', '#ffffff')}; }}")
+            # Store the base stylesheet - NOTE: don't set color on ::item to allow individual item colors
+            self._base_tree_stylesheet = f"QTreeWidget {{ background-color: {tree_bg}; color: {tree_fg}; border: none; }} QTreeWidget::item:selected {{ background-color: {s.get('tree_sel_bg', '#E95420')}; color: {s.get('tree_sel_fg', '#ffffff')}; }}"
+            self.tree.setStyleSheet(self._base_tree_stylesheet)
             
         if hasattr(self, 'nicks'):
             palette = self.nicks.palette()
@@ -319,6 +320,8 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         if name in self.clients: return
         it = QTreeWidgetItem(self.tree)
         it.setText(0, name)
+        # Store actual network name in data role for reliable lookup
+        it.setData(0, Qt.UserRole, name)
         it.setExpanded(True)
         it.setFont(0, QFont("", -1, QFont.Bold))
         self.tree_items[(name, "")] = it
@@ -361,7 +364,16 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         
         it = self.find_item(nw, target)
         if it:
-            it.setForeground(0, QPalette().color(QPalette.WindowText))
+            # Remove star marker if present
+            cur = it.text(0)
+            if cur.startswith("* "):
+                it.setText(0, cur[2:])
+            # Clear highlight marker
+            it.setData(0, Qt.UserRole + 100, None)
+            # Reset to default tree color
+            tree_fg = self.settings.get("tree_fg", "#cccccc")
+            it.setForeground(0, QBrush(QColor(tree_fg)))
+            # Make bold only if it's a network item (not target)
             font = it.font(0)
             font.setBold(not target)
             it.setFont(0, font)
@@ -386,7 +398,10 @@ class MainWindow(QMainWindow, EventHandlerMixin):
 
     def on_tree_click(self, item, col):
         p = item.parent()
-        self.switch_buffer(p.text(0) if p else item.text(0), item.text(0) if p else "")
+        # Get the actual channel/network name from data role (not display text which may have "* " prefix)
+        nw = p.data(0, Qt.UserRole) if p else item.data(0, Qt.UserRole)
+        target = item.data(0, Qt.UserRole) if p else ""
+        self.switch_buffer(nw, target)
         self.input.setFocus()
 
     def on_message(self, nw, target, msg, tags=None):
@@ -479,12 +494,38 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         it = self.find_item(nw, target)
         if it:
             if is_highlight:
-                buf["highlight"] = True
-                it.setForeground(0, QColor("#E95420"))
+                try:
+                    buf["highlight"] = True
+                    # Make the channel item bold and red with star marker
+                    it_font = it.font(0)
+                    it_font.setBold(True)
+                    it.setFont(0, it_font)
+                    # Mark as highlighted and update tree stylesheet to apply red color
+                    it.setData(0, Qt.UserRole + 100, "highlighted")  # Custom marker
+                    # Prepend star marker if not present
+                    cur = it.text(0)
+                    if not cur.startswith("* "):
+                        it.setText(0, f"* {cur}")
+                    # Force update tree stylesheet to color this specific item
+                    self._update_tree_colors()
+                except Exception:
+                    pass
             elif not buf["highlight"]:
-                buf["activity"] = True
-                it.setForeground(0, QColor("#ffffff" if self.settings.get("bg_colour", "#1e1e1e") != "#ffffff" else "#000000"))
-            f = it.font(0); f.setBold(True); it.setFont(0, f)
+                try:
+                    buf["activity"] = True
+                    it_font = it.font(0)
+                    it_font.setBold(True)
+                    it.setFont(0, it_font)
+                    # Remove highlight star and marker
+                    cur = it.text(0)
+                    if cur.startswith("* "):
+                        it.setText(0, cur[2:])
+                    it.setData(0, Qt.UserRole + 100, None)  # Clear marker
+                    # Update stylesheet to remove red color
+                    self._update_tree_colors()
+                    it.setForeground(0, QBrush(QColor("#ffffff" if self.settings.get("bg_colour", "#1e1e1e") != "#ffffff" else "#000000")))
+                except Exception:
+                    pass
 
     def flush_messages(self):
         if not self.msg_queue: return
@@ -529,11 +570,29 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.nicks.setUpdatesEnabled(True)
 
     def find_item(self, nw, target): return self.tree_items.get((nw, target))
+    
+    def _update_tree_colors(self):
+        """Update tree item colors based on highlight status"""
+        tree_fg = self.settings.get("tree_fg", "#cccccc")
+        for (nw, target), item in self.tree_items.items():
+            if item.data(0, Qt.UserRole + 100) == "highlighted":
+                # Force red color for highlighted items
+                item.setForeground(0, QBrush(QColor("#ff3333")))
+            else:
+                # Reset to default tree foreground color
+                item.setForeground(0, QBrush(QColor(tree_fg)))
+    
     def add_tree_item(self, nw, target):
         if not target or (nw, target) in self.tree_items: return
         p = self.find_item(nw, "")
         if p:
-            it = QTreeWidgetItem(p); it.setText(0, target); self.tree_items[(nw, target)] = it
+            it = QTreeWidgetItem(p); it.setText(0, target)
+            # Store actual channel name in data role for reliable lookup
+            it.setData(0, Qt.UserRole, target)
+            # Set default color for tree items since stylesheet no longer forces it
+            tree_fg = self.settings.get("tree_fg", "#cccccc")
+            it.setForeground(0, QBrush(QColor(tree_fg)))
+            self.tree_items[(nw, target)] = it
 
     def remove_tree_item(self, nw, target):
         it = self.tree_items.pop((nw, target), None)
