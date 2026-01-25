@@ -22,6 +22,9 @@ class IRCClient(QObject):
     received_action = pyqtSignal(str, str, str)
     received_quit = pyqtSignal(str, str)
     received_whois = pyqtSignal(dict, dict)
+    # Banlist signals: (channel, banmask, setter, timestamp)
+    received_banlist = pyqtSignal(str, str, str, int)
+    received_banlist_end = pyqtSignal(str)
     event_received = pyqtSignal(str, str, list, dict)
 
     def __init__(self, network_name, server, port, nickname, realname, auto_join_channels=None, use_ssl=False, password=None, auto_reconnect=True, sasl_method=None, sasl_user=None, sasl_pass=None, auto_commands=None):
@@ -243,6 +246,25 @@ class IRCClient(QObject):
                     ts = int(args[3]) if len(args) > 3 and args[3].isdigit() else None
                     if ts is not None:
                         self.received_topic_meta.emit(chan, setter, ts)
+                except Exception:
+                    pass
+
+            elif command == '367':
+                # RPL_BANLIST: args typically [nick, channel, banmask, setter, setat]
+                try:
+                    chan = args[1]
+                    banmask = args[2]
+                    setter = args[3] if len(args) > 3 else ''
+                    ts = int(args[4]) if len(args) > 4 and args[4].isdigit() else 0
+                    self.received_banlist.emit(chan, banmask, setter, ts)
+                except Exception:
+                    pass
+
+            elif command == '368':
+                # RPL_ENDOFBANLIST: args typically [nick, channel, text]
+                try:
+                    chan = args[1]
+                    self.received_banlist_end.emit(chan)
                 except Exception:
                     pass
 

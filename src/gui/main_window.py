@@ -632,10 +632,15 @@ class MainWindow(QMainWindow, EventHandlerMixin):
                     self.show_nick_menu_for_name(word, pos)
                     return
         
-        # Not a nickname, show default menu with copy option
+        # Not a nickname: show default menu with copy option, and channel management if in a channel
         menu = QMenu()
         if cursor.hasSelection():
             menu.addAction("Copy").triggered.connect(lambda: QApplication.clipboard().setText(cursor.selectedText()))
+        # Channel management
+        from src.gui.dialogs.channel_management import ChannelManagementDialogue
+        if self.current_target and self.current_target.startswith(('#', '&')):
+            menu.addSeparator()
+            menu.addAction("Channel Management").triggered.connect(lambda: ChannelManagementDialogue(self, self.current_nw, self.current_target, self.clients[self.current_nw]).exec_())
         menu.exec_(self.chat.mapToGlobal(pos))
     
     def show_nick_menu_for_name(self, nick, pos):
