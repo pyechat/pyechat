@@ -315,7 +315,8 @@ class EventHandlerMixin:
         pass
 
     def on_action(self, nw, target, sender, msg):
-        pass
+        route_to = target if target.startswith('#') or target.startswith('&') else sender
+        self.on_message(nw, route_to, f"* {sender} {msg}")
 
     def on_topic(self, nw, chan, topic):
         self.setup_buffer(nw, chan)
