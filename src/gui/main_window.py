@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
                              QListWidget, QListWidgetItem, QTextBrowser, QLabel, QMenu, 
                              QTreeWidget, QTreeWidgetItem, QApplication, 
                              QSplitter, QSizePolicy)
-from PyQt5.QtGui import QIcon, QTextCursor, QFont, QColor, QPalette, QBrush
+from PyQt5.QtGui import QIcon, QTextCursor, QFont, QColor, QPalette, QBrush, QFontDatabase
 from PyQt5.QtCore import Qt, QTimer
 
 from src.irc.irc_client import IRCClient
@@ -43,6 +43,9 @@ class MainWindow(QMainWindow, EventHandlerMixin):
         self.buffers = {}
         self.recent_activity = {}  # Track recent join/part activity for smart filtering
         self.chat_logger = ChatLogger()  # Initialize chat logger
+        
+        # Load bundled emoji font
+        self.load_bundled_fonts()
         
         self.load_settings()
         
@@ -125,6 +128,27 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             return self.history_draft
         return None
 
+    def load_bundled_fonts(self):
+        """Load bundled emoji fonts from assets/fonts directory."""
+        fonts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'fonts'))
+        
+        # Try loading multiple emoji fonts for better compatibility
+        emoji_fonts = [
+            'NotoEmoji-Variable.ttf',
+            'NotoColorEmoji.ttf'
+        ]
+        
+        for font_file in emoji_fonts:
+            emoji_font_path = os.path.join(fonts_dir, font_file)
+            if os.path.exists(emoji_font_path):
+                font_id = QFontDatabase.addApplicationFont(emoji_font_path)
+                if font_id != -1:
+                    families = QFontDatabase.applicationFontFamilies(font_id)
+                    print(f"Loaded emoji font {font_file}: {families}")
+                else:
+                    print(f"Failed to load emoji font from {emoji_font_path}")
+            else:
+                print(f"Emoji font not found: {font_file}")
 
     def load_settings(self):
         settings_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'settings.json'))
@@ -236,6 +260,11 @@ class MainWindow(QMainWindow, EventHandlerMixin):
             try:
                 f = QFont()
                 f.fromString(font_str)
+                
+                # Set up emoji fallback fonts
+                f.setStyleStrategy(QFont.PreferDefault)
+                f.setFamilies([f.family(), 'Symbola', 'Noto Color Emoji', 'Noto Emoji', 'emoji'])
+                
                 # Apply to major widgets
                 if hasattr(self, 'chat'):
                     self.chat.setFont(f)
